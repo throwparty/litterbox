@@ -1,0 +1,11 @@
+[formatter.nixfmt]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.mdformat]
+command = "mdformat"
+includes = ["*.md"]
+
+[formatter.toml-sort]
+command = "toml-sort"
+includes = ["*.toml"]
