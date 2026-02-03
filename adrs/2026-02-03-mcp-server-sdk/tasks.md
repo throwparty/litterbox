@@ -141,20 +141,48 @@ This task list tracks the evaluation of various Rust MCP SDKs to determine the b
       - **Cannot recommend for production** due to dependency on unreleased code
       - Using git dependencies bypasses semantic versioning and creates maintenance burden
 
-### 2.4 PoC with `ultrafast-mcp`
-- [ ] **Task 2.4.1:** Create a new Rust project for `ultrafast-mcp` PoC at `poc_implementations/poc-ultrafast-mcp/`.
+### 2.4 PoC with `ultrafast-mcp` [✅ COMPLETE - TESTS PASS WITH PATCH, PR #6 SUBMITTED]
+- [x] **Task 2.4.1:** Create a new Rust project for `ultrafast-mcp` PoC at `poc_implementations/poc-ultrafast-mcp/`.
     - **Acceptance Criteria:** A new Rust project directory `poc_implementations/poc-ultrafast-mcp/` exists with a valid `Cargo.toml`.
     - **Test Requirements:** `cargo check` runs successfully in `poc_implementations/poc-ultrafast-mcp/`.
-- [ ] **Task 2.4.2:** Add `ultrafast-mcp` and required dependencies using `cargo add`.
+    - **Status:** ✅ Completed
+- [x] **Task 2.4.2:** Add `ultrafast-mcp` and required dependencies using `cargo add`.
     - **Acceptance Criteria:** `ultrafast-mcp` and other necessary crates are added to `poc_implementations/poc-ultrafast-mcp/Cargo.toml` using their latest versions via `cargo add`.
+    - **Dependencies added:**
+      - ⚠️ **`ultrafast-mcp = { path = "/Users/lukecarrier/Code/techgopal/ultrafast-mcp/crates/ultrafast-mcp", features = ["minimal"] }`** (local patched version)
+      - `tokio = { version = "1.49.0", features = ["full"] }`
+      - `serde = { version = "1.0.228", features = ["derive"] }`
+      - `serde_json = "1.0.149"`
+      - `anyhow = "1.0.100"`
+      - `async-trait = "0.1.89"`
+    - **Critical Issue Discovered:** ultrafast-mcp v202506018.1.0 on crates.io has feature flag bug - imports `streamable_http::middleware` in stdio block but module only exists with http feature
+    - **Fix Applied:** Cloned to `~/Code/techgopal/ultrafast-mcp`, patched `crates/ultrafast-mcp/src/lib.rs` to move middleware imports from stdio block to http block
+    - **Upstream Fix:** PR #6 submitted - https://github.com/techgopal/ultrafast-mcp/pull/6
     - **Test Requirements:** `cargo build` runs successfully in `poc_implementations/poc-ultrafast-mcp/`.
-- [ ] **Task 2.4.3:** Implement `write_file` tool using `ultrafast-mcp` in `poc_implementations/poc-ultrafast-mcp/`.
+    - **Status:** ✅ Completed (using local patched version)
+- [x] **Task 2.4.3:** Implement `write_file` tool using `ultrafast-mcp` in `poc_implementations/poc-ultrafast-mcp/`.
     - **Acceptance Criteria:** The `poc_implementations/poc-ultrafast-mcp/` project contains an MCP server implementation that exposes a `write_file` tool as defined in `plan.md` (Section 6.1).
+    - **Implementation Details:**
+      - Trait-based handler: Implements `ToolHandler` with `handle_tool_call()` and `list_tools()` methods
+      - Server setup: `UltraFastServer::new(server_info, capabilities).with_tool_handler(Arc::new(handler))`
+      - Error handling: Uses typed error constructors like `MCPError::serialization_error()`
+      - Entry point: `server.run_stdio().await`
     - **Test Requirements:** The server can be started and responds to a `write_file` MCP call, successfully writing content to a specified path.
-- [ ] **Task 2.4.4:** Run test harness against `ultrafast-mcp` PoC.
+    - **Status:** ✅ Code complete and compiles with patched version
+- [x] **Task 2.4.4:** Run test harness against `ultrafast-mcp` PoC.
     - **Acceptance Criteria:** The generic test harness successfully validates the `ultrafast-mcp` PoC implementation.
-    - **Test Command:** `cd poc_implementations && python3 test_mcp_server.py poc-ultrafast-mcp`
+    - **Test Command:** `nix develop ./nix --command bash -c 'cd poc_implementations && python3 test_mcp_server.py poc-ultrafast-mcp'`
     - **Test Requirements:** All 4 tests pass (initialize, list tools, write with absolute path, reject relative path).
+    - **Status:** ✅ ALL TESTS PASS (with patched version)
+    - **Test Results:**
+      - ✅ Initialize: Server responds with correct capabilities (poc-ultrafast-mcp v1.0.0)
+      - ✅ List tools: `write_file` discovered with description and schema
+      - ✅ Write absolute path: File created with 29 bytes, parent dirs created
+      - ✅ Reject relative path: Error -32603 "Tool call failed: Protocol error: Serialization error: path must be absolute"
+    - **⚠️ PRODUCTION CONCERN:**
+      - ultrafast-mcp v202506018.1.0 (latest on crates.io) has **broken stdio-only features**
+      - Must use local patched version or wait for PR #6 to be merged and released
+      - **Cannot recommend for production** until fixed version is published
 
 ### 2.5 PoC with `mcp-protocol-sdk`
 - [ ] **Task 2.5.1:** Create a new Rust project for `mcp-protocol-sdk` PoC at `poc_implementations/poc-mcp-protocol-sdk/`.
