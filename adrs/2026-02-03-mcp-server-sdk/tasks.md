@@ -184,20 +184,49 @@ This task list tracks the evaluation of various Rust MCP SDKs to determine the b
       - Must use local patched version or wait for PR #6 to be merged and released
       - **Cannot recommend for production** until fixed version is published
 
-### 2.5 PoC with `mcp-protocol-sdk`
-- [ ] **Task 2.5.1:** Create a new Rust project for `mcp-protocol-sdk` PoC at `poc_implementations/poc-mcp-protocol-sdk/`.
-    - **Acceptance Criteria:** A new Rust project directory `poc_implementations/poc-mcp-protocol-sdk/` exists with a valid `Cargo.toml`.
-    - **Test Requirements:** `cargo check` runs successfully in `poc_implementations/poc-mcp-protocol-sdk/`.
-- [ ] **Task 2.5.2:** Add `mcp-protocol-sdk` and required dependencies using `cargo add`.
-    - **Acceptance Criteria:** `mcp-protocol-sdk` and other necessary crates are added to `poc_implementations/poc-mcp-protocol-sdk/Cargo.toml` using their latest versions via `cargo add`.
-    - **Test Requirements:** `cargo build` runs successfully in `poc_implementations/poc-mcp-protocol-sdk/`.
-- [ ] **Task 2.5.3:** Implement `write_file` tool using `mcp-protocol-sdk` in `poc_implementations/poc-mcp-protocol-sdk/`.
-    - **Acceptance Criteria:** The `poc_implementations/poc-mcp-protocol-sdk/` project contains an MCP server implementation that exposes a `write_file` tool as defined in `plan.md` (Section 6.1).
+### 2.5 PoC with `prism-mcp-rs` (successor to deprecated `mcp-protocol-sdk`) [✅ COMPLETE - TESTS PASS, NOT RECOMMENDED]
+- [x] **Task 2.5.1:** Create a new Rust project for `prism-mcp-rs` PoC at `poc_implementations/poc-prism-mcp/`.
+    - **Acceptance Criteria:** A new Rust project directory `poc_implementations/poc-prism-mcp/` exists with a valid `Cargo.toml`.
+    - **Test Requirements:** `cargo check` runs successfully in `poc_implementations/poc-prism-mcp/`.
+    - **Status:** ✅ Completed
+    - **Note:** Using `prism-mcp-rs` as direct replacement for deprecated `mcp-protocol-sdk`
+- [x] **Task 2.5.2:** Add `prism-mcp-rs` and required dependencies using `cargo add`.
+    - **Acceptance Criteria:** `prism-mcp-rs` and other necessary crates are added to `poc_implementations/poc-prism-mcp/Cargo.toml` using their latest versions via `cargo add`.
+    - **Dependencies added:**
+      - `prism-mcp-rs = { version = "1.1", features = ["stdio"] }`
+      - `tokio = { version = "1.49.0", features = ["full"] }`
+      - `serde = { version = "1.0.228", features = ["derive"] }`
+      - `serde_json = "1.0.149"`
+      - `async-trait = "0.1.89"`
+      - `anyhow = "1.0.100"`
+    - **Test Requirements:** `cargo build` runs successfully in `poc_implementations/poc-prism-mcp/`.
+    - **Status:** ✅ Completed
+- [x] **Task 2.5.3:** Implement `write_file` tool using `prism-mcp-rs` in `poc_implementations/poc-prism-mcp/`.
+    - **Acceptance Criteria:** The `poc_implementations/poc-prism-mcp/` project contains an MCP server implementation that exposes a `write_file` tool as defined in `plan.md` (Section 6.1).
+    - **Implementation Details:**
+      - Builder pattern: `McpServer::new().add_tool().start()`
+      - Tool handler: Implements `ToolHandler` trait with async `call()` method
+      - Arguments: Manual extraction from `HashMap<String, Value>`
+      - Error types: `McpError::validation()`, `McpError::internal()`
     - **Test Requirements:** The server can be started and responds to a `write_file` MCP call, successfully writing content to a specified path.
-- [ ] **Task 2.5.4:** Run test harness against `mcp-protocol-sdk` PoC.
-    - **Acceptance Criteria:** The generic test harness successfully validates the `mcp-protocol-sdk` PoC implementation.
-    - **Test Command:** `cd poc_implementations && python3 test_mcp_server.py poc-mcp-protocol-sdk`
+    - **Status:** ✅ Code complete (90 lines total)
+- [x] **Task 2.5.4:** Run test harness against `prism-mcp-rs` PoC.
+    - **Acceptance Criteria:** The generic test harness successfully validates the `prism-mcp-rs` PoC implementation.
+    - **Test Command:** `nix develop ./nix --command bash -c 'cd poc_implementations && python3 test_mcp_server.py poc-prism-mcp'`
     - **Test Requirements:** All 4 tests pass (initialize, list tools, write with absolute path, reject relative path).
+    - **Status:** ✅ ALL TESTS PASS
+    - **Test Results:**
+      - ✅ Initialize: Server responds with correct capabilities (poc-prism-mcp v1.0.0)
+      - ✅ List tools: `write_file` discovered with description and schema
+      - ✅ Write absolute path: File created with 29 bytes, parent dirs created
+      - ✅ Reject relative path: Error -32603 "Protocol error: JSON-RPC error -32602: Validation error: path must be absolute"
+    - **⚠️ CRITICAL PRODUCTION CONCERN:**
+      - prism-mcp-rs v1.1.2 is only **5 months old** (first release August 2025)
+      - Very small community (42 GitHub stars)
+      - Heavy "enterprise-grade" marketing despite young age
+      - 160 package dependencies (heavier than rmcp)
+      - Many advanced features (plugins, circuit breakers, etc.) unproven in production
+      - **Cannot recommend for production** - too new and unproven compared to official rmcp
 
 ## 3. Evaluation and Decision
 - [ ] **Task:** Compare PoC implementations.
