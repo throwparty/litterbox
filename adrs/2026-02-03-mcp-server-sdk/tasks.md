@@ -96,20 +96,50 @@ This task list tracks the evaluation of various Rust MCP SDKs to determine the b
       - ⚠️ Reject relative path: Cannot test (sandbox blocks before validation)
     - **Rejection Reason:** WASM sandbox prevents filesystem operations - architectural mismatch for our use case
 
-### 2.3 PoC with `pmcp`
-- [ ] **Task 2.3.1:** Create a new Rust project for `pmcp` PoC at `poc_implementations/poc-pmcp/`.
+### 2.3 PoC with `pmcp` [⚠️ TESTS PASS - BUT REQUIRES UNRELEASED GIT DEPENDENCY]
+- [x] **Task 2.3.1:** Create a new Rust project for `pmcp` PoC at `poc_implementations/poc-pmcp/`.
     - **Acceptance Criteria:** A new Rust project directory `poc_implementations/poc-pmcp/` exists with a valid `Cargo.toml`.
     - **Test Requirements:** `cargo check` runs successfully in `poc_implementations/poc-pmcp/`.
-- [ ] **Task 2.3.2:** Add `pmcp` and required dependencies using `cargo add`.
+    - **Status:** ✅ Completed
+- [x] **Task 2.3.2:** Add `pmcp` and required dependencies using `cargo add`.
     - **Acceptance Criteria:** `pmcp` and other necessary crates are added to `poc_implementations/poc-pmcp/Cargo.toml` using their latest versions via `cargo add`.
+    - **Dependencies added:**
+      - ⚠️ **`pmcp = { git = "https://github.com/paiml/rust-mcp-sdk", branch = "main" }`** (git dependency required - crates.io v1.9.4 has broken stdio)
+      - `tokio = { version = "1.49", features = ["full"] }`
+      - `serde = { version = "1.0.228", features = ["derive"] }`
+      - `schemars = { version = "1.2.1", features = ["derive"] }`
+      - `anyhow = "1.0.100"`
+      - `serde_json = "1.0.149"`
+      - `async-trait = "0.1.89"`
+      - `tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }`
+    - **Critical Issue Discovered:** pmcp v1.9.4 on crates.io has non-functional stdio transport (used HTTP Content-Length framing instead of newline-delimited JSON-RPC). Fixed in PR #157 (merged Jan 18, 2026) but not yet released.
     - **Test Requirements:** `cargo build` runs successfully in `poc_implementations/poc-pmcp/`.
-- [ ] **Task 2.3.3:** Implement `write_file` tool using `pmcp` in `poc_implementations/poc-pmcp/`.
+    - **Status:** ✅ Completed (using git main branch, commit e1bcebaf)
+- [x] **Task 2.3.3:** Implement `write_file` tool using `pmcp` in `poc_implementations/poc-pmcp/`.
     - **Acceptance Criteria:** The `poc_implementations/poc-pmcp/` project contains an MCP server implementation that exposes a `write_file` tool as defined in `plan.md` (Section 6.1).
+    - **Implementation Details:**
+      - Server builder pattern: `Server::builder().name().version().capabilities().tool().build()`
+      - Tool handler: Implements `ToolHandler` trait with async `handle()` method
+      - Entry point: `#[tokio::main]` async main calling `server.run_stdio().await`
+      - Pattern matched official pmcp example: `/tmp/rust-mcp-sdk/examples/02_server_basic.rs`
     - **Test Requirements:** The server can be started and responds to a `write_file` MCP call, successfully writing content to a specified path.
-- [ ] **Task 2.3.4:** Run test harness against `pmcp` PoC.
+    - **Status:** ✅ Code complete (compiles with `cargo check`)
+- [x] **Task 2.3.4:** Run test harness against `pmcp` PoC.
     - **Acceptance Criteria:** The generic test harness successfully validates the `pmcp` PoC implementation.
-    - **Test Command:** `cd poc_implementations && python3 test_mcp_server.py poc-pmcp`
+    - **Test Command:** `nix develop ./nix --command bash -c 'cd poc_implementations && python3 test_mcp_server.py poc-pmcp'`
     - **Test Requirements:** All 4 tests pass (initialize, list tools, write with absolute path, reject relative path).
+    - **Status:** ✅ ALL TESTS PASS (when using pmcp from git main branch)
+    - **Test Results:**
+      - ✅ Initialize: Server responds with correct capabilities (poc-pmcp-write-file v1.0.0)
+      - ✅ List tools: `write_file` discovered (but no schema - pmcp limitation)
+      - ✅ Write absolute path: File created with 29 bytes, parent dirs created
+      - ✅ Reject relative path: Error -32603 "Validation error: path must be absolute"
+    - **⚠️ CRITICAL PRODUCTION CONCERN:**
+      - pmcp v1.9.4 (latest stable on crates.io) has **broken stdio support**
+      - Must use unreleased code from git main branch (commit e1bcebaf)
+      - PR #157 fixed stdio on Jan 18, 2026 but no new release published (17 days later as of Feb 4, 2026)
+      - **Cannot recommend for production** due to dependency on unreleased code
+      - Using git dependencies bypasses semantic versioning and creates maintenance burden
 
 ### 2.4 PoC with `ultrafast-mcp`
 - [ ] **Task 2.4.1:** Create a new Rust project for `ultrafast-mcp` PoC at `poc_implementations/poc-ultrafast-mcp/`.
