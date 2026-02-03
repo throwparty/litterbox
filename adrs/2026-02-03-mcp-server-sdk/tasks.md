@@ -57,20 +57,44 @@ This task list tracks the evaluation of various Rust MCP SDKs to determine the b
       - ✅ Reject relative path: Error -32602 "path must be absolute"
     - **Status:** ✅ Completed
 
-### 2.2 PoC with `hyper-mcp`
-- [ ] **Task 2.2.1:** Create a new Rust project for `hyper-mcp` PoC at `poc_implementations/poc-hyper-mcp/`.
+### 2.2 PoC with `hyper-mcp` [✅ COMPLETE - REJECTED DUE TO WASM SANDBOX]
+- [x] **Task 2.2.1:** Create a new Rust project for `hyper-mcp` PoC at `poc_implementations/poc-hyper-mcp/`.
     - **Acceptance Criteria:** A new Rust project directory `poc_implementations/poc-hyper-mcp/` exists with a valid `Cargo.toml`.
     - **Test Requirements:** `cargo check` runs successfully in `poc_implementations/poc-hyper-mcp/`.
-- [ ] **Task 2.2.2:** Add `hyper-mcp` and required dependencies using `cargo add`.
+    - **Status:** ✅ Completed
+- [x] **Task 2.2.2:** Add `hyper-mcp` and required dependencies using `cargo add`.
     - **Acceptance Criteria:** `hyper-mcp` and other necessary crates are added to `poc_implementations/poc-hyper-mcp/Cargo.toml` using their latest versions via `cargo add`.
+    - **Dependencies added:**
+      - `extism-pdk = "1.4.1"` (WASM plugin development kit)
+      - `serde = { version = "1.0.228", features = ["derive"] }`
+      - `serde_json = "1.0.149"`
+      - `anyhow = "1.0.100"`
+      - `base64 = "0.22.1"`
+      - `base64-serde = "0.8.0"`
+      - `chrono = { version = "0.4.43", features = ["serde"] }`
+    - **Build target:** `wasm32-wasip1` (WebAssembly plugin)
     - **Test Requirements:** `cargo build` runs successfully in `poc_implementations/poc-hyper-mcp/`.
-- [ ] **Task 2.2.3:** Implement `write_file` tool using `hyper-mcp` in `poc_implementations/poc-hyper-mcp/`.
+    - **Status:** ✅ Completed
+- [x] **Task 2.2.3:** Implement `write_file` tool using `hyper-mcp` in `poc_implementations/poc-hyper-mcp/`.
     - **Acceptance Criteria:** The `poc_implementations/poc-hyper-mcp/` project contains an MCP server implementation that exposes a `write_file` tool as defined in `plan.md` (Section 6.1).
+    - **Implementation Details:**
+      - WASM plugin architecture (not standalone binary)
+      - Uses Extism PDK types instead of standard MCP types
+      - Plugin exports: `mcp_list_tools`, `mcp_call_tool`
+      - Compiled to `plugin.wasm` (391KB)
     - **Test Requirements:** The server can be started and responds to a `write_file` MCP call, successfully writing content to a specified path.
-- [ ] **Task 2.2.4:** Run test harness against `hyper-mcp` PoC.
+    - **Status:** ✅ Code complete and builds successfully
+- [x] **Task 2.2.4:** Run test harness against `hyper-mcp` PoC.
     - **Acceptance Criteria:** The generic test harness successfully validates the `hyper-mcp` PoC implementation.
-    - **Test Command:** `cd poc_implementations && python3 test_mcp_server.py poc-hyper-mcp`
+    - **Test Command:** Custom test harness (standard test doesn't work for WASM plugins)
     - **Test Requirements:** All 4 tests pass (initialize, list tools, write with absolute path, reject relative path).
+    - **Status:** ⚠️ PARTIAL - 2 of 4 tests pass, rejected due to WASM sandbox
+    - **Test Results:**
+      - ✅ Initialize: Server responds (hyper-mcp v0.2.3)
+      - ✅ List tools: `write_file_plugin-write_file` discovered
+      - ❌ Write absolute path: **BLOCKED by WASM sandbox** (no filesystem access by design)
+      - ⚠️ Reject relative path: Cannot test (sandbox blocks before validation)
+    - **Rejection Reason:** WASM sandbox prevents filesystem operations - architectural mismatch for our use case
 
 ### 2.3 PoC with `pmcp`
 - [ ] **Task 2.3.1:** Create a new Rust project for `pmcp` PoC at `poc_implementations/poc-pmcp/`.

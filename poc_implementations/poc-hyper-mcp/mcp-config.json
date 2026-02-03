@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "poc-hyper-mcp": {
+      "command": "/Users/lukecarrier/.cargo/bin/hyper-mcp",
+      "args": ["--config", "config.json"],
+      "env": {}
+    }
+  }
+}

@@ -48,7 +48,8 @@ A structured comparison of identified SDKs to objectively measure them against t
 2.  **`hyper-mcp`:**
     *   **Repository:** [hyper-mcp-rs/hyper-mcp](https://github.com/hyper-mcp-rs/hyper-mcp)
     *   **Pros:** High performance, WASM sandboxing support, multiple transports (SSE/HTTP).
-    *   **Cons:** More complex architecture; focused on being a plugin host.
+    *   **Cons:** Different architecture - you build WASM plugins loaded by the hyper-mcp runtime rather than a standalone binary.
+    *   **Note:** Uses Extism PDK for plugin development, compiled to wasm32-wasip1 target.
 3.  **`pmcp`:**
     *   **Crate:** [pmcp](https://crates.io/crates/pmcp)
     *   **Pros:** High TypeScript SDK compatibility, comprehensive feature set, very ergonomic.

@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "write_file_plugin": {
+      "url": "file:///Users/lukecarrier/Code/throw.party/litterbox/poc_implementations/poc-hyper-mcp/target/wasm32-wasip1/release/plugin.wasm"
+    }
+  }
+}
