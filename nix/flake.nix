@@ -34,6 +34,8 @@
             inherit (throwparty.devShells.${system}) commonTools;
             inherit (pkgs)
               cargo-auditable
+              openssl
+              pkg-config
               python3
               stdenv
               ;
@@ -51,6 +53,8 @@
           pkgs.mkShell {
             nativeBuildInputs = [
               cargo-auditable
+              openssl
+              pkg-config
               python3
               rustToolchain
               stdenv.cc
