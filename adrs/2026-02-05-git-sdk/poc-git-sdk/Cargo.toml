@@ -1,0 +1,16 @@
+[package]
+name = "poc-git-sdk"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+git2 = "0.19"
+gix = "0.64"
+tempfile = "3.12"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "git_sdk_bench"
+harness = false
