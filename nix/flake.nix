@@ -35,6 +35,7 @@
             inherit (pkgs)
               cargo-auditable
               python3
+              stdenv
               ;
             toolVersions = throwparty.lib.mkToolVersions {
               inherit pkgs;
@@ -48,10 +49,11 @@
             };
           in
           pkgs.mkShell {
-            buildInputs = [
+            nativeBuildInputs = [
               cargo-auditable
               python3
               rustToolchain
+              stdenv.cc
             ];
             shellHook = "\n cat ${toolVersions}";
           };
