@@ -37,7 +37,7 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 -   **Estimated Effort:** 2-4 days.
 -   **Specification Reference:** Plan Section 3.1 (Evaluation Methodology - Detailed Review, PoC Implementation), Plan Section 6 (Testing Strategy - PoC Tests).
 
-### Task 3: Evaluate Crate - `docker-wrapper`
+### Task 3: Evaluate Crate - `docker-wrapper` (COMPLETED - 2026-02-06)
 
 -   **Description:** Perform a detailed review of the `docker-wrapper` crate against all evaluation criteria outlined in the technical plan. Additionally, develop a small Rust Proof-of-Concept (PoC) application using this crate to demonstrate its ability to perform the core functional requirements (FR2, FR3, FR6, FR7, FR8, FR9). The PoC should connect to a local Docker Engine.
 -   **Success Criteria:**
@@ -51,6 +51,7 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 -   **Test Requirements:** The PoC itself serves as a runnable test. It should execute without panics and demonstrate the specified functionalities, printing success messages or relevant output.
 -   **Dependencies:** None.
 -   **Estimated Effort:** 2-4 days.
+-   **Status:** Completed. PoC tests run successfully with `DOCKER_HOST=unix:///Users/lukecarrier/.lima/docker-arm64/sock/docker.sock` and `cargo test docker_wrapper::`.
 -   **Specification Reference:** Plan Section 3.1 (Evaluation Methodology - Detailed Review, PoC Implementation), Plan Section 6 (Testing Strategy - PoC Tests).
 
 ### Task 4: Evaluate Crate - `anchor`
@@ -64,7 +65,7 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 -   **Estimated Effort:** 1-2 days.
 -   **Specification Reference:** Plan Section 3.1 (Evaluation Methodology - Detailed Review, PoC Implementation), Plan Section 6 (Testing Strategy - PoC Tests).
 
-### Task 5: Comparative Analysis and Recommendation
+### Task 5: Comparative Analysis and Recommendation (COMPLETED - 2026-02-06)
 
 -   **Description:** Compile the detailed review documents and the results from the PoC implementations (from Tasks 1, 2, 3, and 4) into a comprehensive comparative analysis. Provide a final recommendation for the most suitable crate.
 -   **Success Criteria:** A final document is created that:
@@ -75,4 +76,5 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 -   **Test Requirements:** N/A.
 -   **Dependencies:** Tasks 1, 2, 3, and 4.
 -   **Estimated Effort:** 1-2 days.
+-   **Status:** Completed. Comparative report and recommendation in `adrs/2026-02-05-docker-sdk/comparison.md`.
 -   **Specification Reference:** Plan Section 3.1 (Evaluation Methodology - Comparative Analysis, Recommendation).
