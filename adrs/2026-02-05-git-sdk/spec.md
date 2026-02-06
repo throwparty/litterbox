@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # Specification for Git SDK Selection
 
 ## 1. Goals

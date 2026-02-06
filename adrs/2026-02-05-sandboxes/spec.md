@@ -1,3 +1,7 @@
+---
+status: draft
+---
+
 # ADR: Sandboxes - Core Abstraction
 
 ## 1. Goals

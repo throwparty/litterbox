@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # Specification: Choose an MCP server SDK for Rust
 
 ## 0. References

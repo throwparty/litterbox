@@ -16,12 +16,12 @@ The system will follow a layered design to ensure clear separation of concerns a
 graph TD
     User[Human User] --> CLI[Litterbox CLI]
     Agent[Agent] --> MCPServer[Litterbox MCP Server]
-    
+
     CLI --> SandboxInterface[Sandbox Interface]
     MCPServer --> SandboxInterface[Sandbox Interface]
-    
+
     SandboxInterface --> DockerImpl[Docker Sandbox Implementation]
-    
+
     subgraph Host Machine
         User
         CLI

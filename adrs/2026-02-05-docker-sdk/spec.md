@@ -1,3 +1,7 @@
+---
+status: draft
+---
+
 # ADR: Docker SDK for Rust
 
 ## 1. Goals and User Journeys
