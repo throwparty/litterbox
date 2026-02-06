@@ -50,3 +50,7 @@ pub trait DockerClient {
 #[path = "lib/bollard.rs"]
 pub mod bollard;
 pub use bollard::BollardClient;
+
+#[path = "lib/rs_docker.rs"]
+pub mod rs_docker;
+pub use rs_docker::RsDockerClient;

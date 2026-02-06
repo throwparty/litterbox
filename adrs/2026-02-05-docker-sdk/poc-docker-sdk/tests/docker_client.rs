@@ -60,7 +60,7 @@ fn rs_docker_client() -> DockerResult<Box<dyn DockerClient>> {
 }
 
 macro_rules! docker_client_test_suite {
-    ($module:ident, $client_fn:path) => {
+    ($module:ident, $client_fn:path $(, skip = $reason:literal)? ) => {
         mod $module {
             use super::*;
 
@@ -69,12 +69,14 @@ macro_rules! docker_client_test_suite {
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn pull_image() -> DockerResult<()> {
                 let client = client()?;
                 client.pull_image(IMAGE_NAME).await
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn list_containers() -> DockerResult<()> {
                 let client = client()?;
                 let client_ref = client.as_ref();
@@ -98,6 +100,7 @@ macro_rules! docker_client_test_suite {
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn exec_command() -> DockerResult<()> {
                 let client = client()?;
                 let client_ref = client.as_ref();
@@ -128,6 +131,7 @@ macro_rules! docker_client_test_suite {
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn copy_in_and_out() -> DockerResult<()> {
                 let client = client()?;
                 let client_ref = client.as_ref();
@@ -186,6 +190,7 @@ macro_rules! docker_client_test_suite {
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn stop_and_remove() -> DockerResult<()> {
                 let client = client()?;
                 let client_ref = client.as_ref();
@@ -211,6 +216,7 @@ macro_rules! docker_client_test_suite {
             }
 
             #[tokio::test]
+            $(#[ignore = $reason])?
             async fn remove_missing_container() -> DockerResult<()> {
                 let client = client()?;
                 let client_ref = client.as_ref();
@@ -227,4 +233,4 @@ macro_rules! docker_client_test_suite {
 }
 
 docker_client_test_suite!(bollard, bollard_client);
-docker_client_test_suite!(rs_docker, rs_docker_client);
+docker_client_test_suite!(rs_docker, rs_docker_client, skip = "rs-docker unmaintained and not actively maintained");
