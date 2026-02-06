@@ -4,7 +4,7 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 
 ## Task List
 
-### Task 1: Evaluate Crate - `bollard`
+### Task 1: Evaluate Crate - `bollard` (COMPLETED - 2026-02-06)
 
 -   **Description:** Perform a detailed review of the `bollard` crate against all evaluation criteria outlined in the technical plan (Functional Coverage, API Design & Usability, Documentation Quality, Project Activity & Maintenance, Community Support, Dependencies, License, Reliability & Error Handling, Performance, Compatibility). Additionally, develop a small Rust Proof-of-Concept (PoC) application using this crate to demonstrate its ability to perform the core functional requirements (FR2, FR3, FR6, FR7, FR8, FR9). The PoC should connect to a local Docker Engine.
 -   **Success Criteria:**
@@ -18,6 +18,7 @@ This document outlines the tasks required to evaluate specific existing Rust cra
 -   **Test Requirements:** The PoC itself serves as a runnable test. It should execute without panics and demonstrate the specified functionalities, printing success messages or relevant output.
 -   **Dependencies:** None.
 -   **Estimated Effort:** 2-4 days.
+-   **Status:** Completed. PoC run successfully with `DOCKER_HOST=unix:///Users/lukecarrier/.lima/docker-arm64/sock/docker.sock`.
 -   **Specification Reference:** Plan Section 3.1 (Evaluation Methodology - Detailed Review, PoC Implementation), Plan Section 6 (Testing Strategy - PoC Tests).
 
 ### Task 2: Evaluate Crate - `rs-docker`

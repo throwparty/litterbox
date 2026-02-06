@@ -10,6 +10,7 @@ status: draft
 - To provide a robust and idiomatic Rust interface for interacting with a local Docker Engine.
 - To enable programmatic creation, deletion, management, and interaction with Docker containers and images from Rust applications.
 - To facilitate the development of Rust applications that require comprehensive Docker container management capabilities.
+- To define a trait-based interface so multiple Docker client libraries can implement the same operations.
 
 ### User Journeys
 - **Developer creating a container:** A Rust developer needs to spin up a new Docker container from a specified image (e.g., `ubuntu:latest`, `nginx:stable`) with custom configurations (e.g., container name, environment variables, port mappings) for testing or application deployment.
@@ -36,6 +37,7 @@ status: draft
 - **FR7: Execute Command in Container:** The SDK MUST provide a function to execute a command inside a running container, capturing its standard output and standard error.
 - **FR8: Copy Files into Container:** The SDK MUST provide a function to copy files or directories from the host filesystem into a running container.
 - **FR9: Copy Files out of Container:** The SDK MUST provide a function to copy files or directories from a running container to the host filesystem.
+- **FR10: Trait-based Interface:** The SDK MUST provide a Rust trait that defines the operations in FR2–FR9 so multiple library implementations can be swapped behind a common interface.
 
 ## 3. Non-functional Requirements
 
@@ -57,10 +59,12 @@ status: draft
 - **AC7: Successful Command Execution:** A Rust program can successfully execute a command inside a running container, capture its standard output/error, and interpret its exit code.
 - **AC8: Successful File Copy (into):** A Rust program can successfully copy a file from the host into a specified path within a container, and the file is verifiable inside the container.
 - **AC9: Successful File Copy (out of):** A Rust program can successfully copy a file from a specified path within a container to the host filesystem, and the file is verifiable on the host.
+- **AC10: Trait-based Implementation:** At least one implementation of the trait-based interface exists and successfully performs the operations in FR2–FR9.
 
 ## 5. Edge Cases and Error Handling
 
 - **Docker Engine Unreachable:** The SDK MUST provide a clear error when it cannot connect to the Docker Engine (e.g., Docker daemon not running, incorrect socket path, permission issues).
+- **Non-default Socket Path:** The SDK SHOULD allow specifying a non-default Docker socket path (e.g., via `DOCKER_HOST`) and provide a clear error if that path is invalid or unreachable.
 - **Invalid Image:** Attempting to create a container with an image that does not exist locally or on a configured registry MUST result in an error. Attempting to pull a non-existent or improperly named image MUST result in an error.
 - **Container Not Found:** Attempting to delete, start, stop, execute a command in, or copy files to/from a container using an ID or name that does not correspond to an existing container MUST result in an error.
 - **Insufficient Permissions:** If the Rust application lacks the necessary permissions to interact with the Docker daemon, or for file operations within a container, the SDK MUST report a permission-denied error.
