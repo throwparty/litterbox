@@ -54,3 +54,7 @@ pub use bollard::BollardClient;
 #[path = "lib/rs_docker.rs"]
 pub mod rs_docker;
 pub use rs_docker::RsDockerClient;
+
+#[path = "lib/docker_wrapper.rs"]
+pub mod docker_wrapper;
+pub use docker_wrapper::DockerWrapperClient;

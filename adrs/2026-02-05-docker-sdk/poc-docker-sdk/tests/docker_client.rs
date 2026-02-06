@@ -1,4 +1,6 @@
-use bollard_poc::{BollardClient, ContainerSpec, DockerClient, DockerResult, RsDockerClient};
+use bollard_poc::{
+    BollardClient, ContainerSpec, DockerClient, DockerResult, DockerWrapperClient, RsDockerClient,
+};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -57,6 +59,10 @@ fn bollard_client() -> DockerResult<Box<dyn DockerClient>> {
 
 fn rs_docker_client() -> DockerResult<Box<dyn DockerClient>> {
     Ok(Box::new(RsDockerClient::connect_with_env()?))
+}
+
+fn docker_wrapper_client() -> DockerResult<Box<dyn DockerClient>> {
+    Ok(Box::new(DockerWrapperClient::new()))
 }
 
 macro_rules! docker_client_test_suite {
@@ -234,3 +240,4 @@ macro_rules! docker_client_test_suite {
 
 docker_client_test_suite!(bollard, bollard_client);
 docker_client_test_suite!(rs_docker, rs_docker_client, skip = "rs-docker unmaintained and not actively maintained");
+docker_client_test_suite!(docker_wrapper, docker_wrapper_client);
