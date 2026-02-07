@@ -90,6 +90,7 @@ Adhering to FR4, the architecture will enforce strong isolation:
     *   Pulls and uses the `busybox:latest` image.
     *   Handles the physical transfer of the project source code into the container filesystem (e.g., via `tar`).
     *   Configures container settings required for compute and storage isolation.
+    *   Names containers using the repository root basename to avoid cross-project collisions (`litterbox-<repo>-<slug>`).
 
 ### 3.4 Git Integration Module
 *   **Responsibilities**:

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 ---
 
 # ADR: Sandboxes - Core Abstraction
@@ -27,7 +27,7 @@ The primary goals for the sandbox abstraction in Litterbox are to:
     *   Litterbox creates a new Git branch based on the current `HEAD` of the repository, using the slugified name.
     *   Litterbox provisions a Docker container for the sandbox.
     *   Litterbox copies the entire project source code into the newly provisioned container. This is a copy, not a bind mount.
-    *   If specified in `.litterbox.toml`, Litterbox executes the `container.setup-command` within the container.
+    *   Litterbox executes a fixed startup command (`echo hello world`) within the container. Configuration via `.litterbox.toml` is deferred.
     *   The sandbox is now ready for the agent to interact with using other MCP tools (e.g., `sandbox-exec`, `sandbox-read`, `sandbox-write`).
 
 ### 2.2 Human Pausing Sandboxes
@@ -67,10 +67,11 @@ The primary goals for the sandbox abstraction in Litterbox are to:
     *   **FR1.4**: A container (initially Docker) SHALL be provisioned for the sandbox.
     *   **FR1.5**: For the initial implementation, the sandbox SHALL exclusively use the `busybox:latest` Docker image. Configuration of alternative images is explicitly deferred and not a current requirement.
     *   **FR1.6**: The project source code SHALL be copied into the container. It MUST NOT be a bind mount to the host filesystem.
-    *   **FR1.7**: If a setup command is provided, it SHALL be executed once within the container during its initial creation.
+    *   **FR1.7**: A startup command (`echo hello world`) SHALL be executed once within the container during its initial creation. Configuration of a custom setup command is deferred.
     *   **FR1.8**: The `sandbox-create` tool SHALL return an error if a sandbox with the requested name already exists.
     *   **FR1.9**: The provided sandbox name SHALL be slugified by lowercasing, replacing non-alphanumeric characters with dashes, collapsing consecutive dashes to a single dash, and trimming leading and trailing dashes.
     *   **FR1.10**: After slugification, the name SHALL be validated as 1-63 characters and limited to `[a-z0-9-]`.
+    *   **FR1.11**: Container names SHALL be prefixed with the repository root basename, slugified, and follow `litterbox-<repo>-<slug>` to avoid cross-project collisions.
 
 *   **FR2: Sandbox Pausing and Resuming (`litterbox pause`, `litterbox resume`)**
     *   **FR2.1**: The `litterbox pause <ENV_NAME>` CLI subcommand SHALL gracefully pause the specified sandbox container, preserving its state for later resumption.
@@ -104,9 +105,10 @@ The primary goals for the sandbox abstraction in Litterbox are to:
     *   **AC1.1**: A call to `sandbox-create("my-new-feature")` successfully provisions a new sandbox, and subsequent `litterbox list` shows "my-new-feature" as an active sandbox.
     *   **AC1.2**: After `sandbox-create`, `git branch` on the host shows a new branch named `litterbox/my-new-feature` that is a direct descendant of `HEAD`.
     *   **AC1.3**: Inside the created container, the project directory contains an exact copy of the source code from `HEAD` at the time of creation.
-    *   **AC1.4**: If `container.setup-command = ["npm", "install"]` is specified, `npm install` is executed during sandbox creation, and its effects (e.g., `node_modules` directory) are present in the container.
+    *   **AC1.4**: The startup command (`echo hello world`) is executed during sandbox creation.
     *   **AC1.5**: Attempting `sandbox-create("my-new-feature")` again immediately after a successful creation SHALL result in an error message indicating the sandbox already exists, and no new sandbox or branch is created.
     *   **AC1.6**: A sandbox name like "My Feature Name!@#" is correctly slugified to "my-feature-name" for branch naming.
+    *   **AC1.7**: The created container name includes the repo prefix and slug (e.g., `litterbox/my-repo` and `my-feature` results in `litterbox-my-repo-my-feature`).
 
 *   **AC2: Sandbox Pausing and Resuming**
     *   **AC2.1**: Running `litterbox pause my-sandbox` stops the associated container, and `litterbox list` shows its status as "paused". Running `litterbox resume my-sandbox` restarts it, and its state is preserved.
@@ -130,7 +132,7 @@ The primary goals for the sandbox abstraction in Litterbox are to:
     *   **Invalid Name**: If `sandbox-create` is called with an empty, excessively long, or otherwise invalid name after slugification, it SHALL return an error (e.g., "Error: Invalid sandbox name. Slugified names must be 1-63 characters and contain only [a-z0-9-].").
     *   **Container Provisioning Failure**: If the underlying container runtime (e.g., Docker) fails to provision the container, `sandbox-create` SHALL report the error, and no partial sandbox state (container or Git branch) should be left behind.
     *   **Git Branch Creation Failure**: If Git fails to create the branch (e.g., due to invalid characters after slugification, or a conflict with an existing non-litterbox branch), `sandbox-create` SHALL report the error and ensure no partial state is created.
-    *   **`container.setup-command` Failure**: If the `container.setup-command` fails (returns a non-zero exit code), `sandbox-create` SHALL report this failure, and the sandbox should be marked as "failed setup" or similar, not "ready". The agent should be informed of the setup failure.
+    *   **Startup Command Failure**: If the startup command fails (returns a non-zero exit code), `sandbox-create` SHALL report this failure, and the sandbox should be marked as "failed setup" or similar, not "ready". The agent should be informed of the setup failure.
 
 *   **Sandbox Pausing (`litterbox pause`)**
     *   **Non-existent Sandbox**: If `litterbox pause` is called with a non-existent sandbox name, it SHALL return an error (e.g., "Error: Sandbox 'non-existent-sandbox' not found.").
@@ -215,7 +217,7 @@ graph TD
     J -- Provider Error --> K[Error: Container Provisioning Failed]
     J -- Success --> L[Copy Project Source Code into Container]
     L -- Copy Error --> M[Error: Source Code Copy Failed]
-    L -- Success --> N{Execute container.setup-command (if specified in .litterbox.toml)}
+    L -- Success --> N{Execute startup command (currently `echo hello world`)}
     N -- Command Fails --> O[Error: Setup Command Failed]
     N -- Command Succeeds or Not Specified --> P[Sandbox Ready for Agent Interaction]
 

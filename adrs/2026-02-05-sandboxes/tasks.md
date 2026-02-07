@@ -17,6 +17,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: None.
 
 ### Task 1.2: Branch Management (Git Module)
+- [x] Completed
 - **Steps**:
   1. Initialize `git2::Repository`.
   2. Implement `create_branch(slug: &str) -> Result<String>`.
@@ -29,6 +30,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: Task 1.1.
 
 ### Task 1.3: Archive Generation (Git Module)
+- [x] Completed
 - **Steps**:
   1. Implement `get_archive(ref: &str) -> Result<Vec<u8>>`.
   2. Use `git2` to traverse the tree and package files into a tarball.
@@ -41,6 +43,7 @@ This task list defines the granular units of work for implementing the sandbox f
 ## Phase 2: Docker Infrastructure
 
 ### Task 2.1: Bollard Client Setup & Image Management
+- [x] Completed
 - **Steps**:
   1. Initialize `bollard::Docker` client using Unix sockets.
   2. Implement an internal helper to pull `busybox:latest` if not present.
@@ -51,6 +54,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: Task 1.1.
 
 ### Task 2.2: Container Provisioning (`create`)
+- [x] Completed
 - **Steps**:
   1. Implement `Sandbox::create`.
   2. Define container configuration (no bind mounts, specific root path).
@@ -98,6 +102,7 @@ This task list defines the granular units of work for implementing the sandbox f
 ## Phase 3: User Interfaces
 
 ### Task 3.1: CLI Command Handlers
+- [x] Completed
 - **Steps**:
   1. Add `pause`, `resume`, `delete`, and `shell` subcommands to the existing CLI.
   2. Bind subcommands to the Sandbox Interface methods.
@@ -108,6 +113,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: Phase 2.
 
 ### Task 3.2: CLI Output Formatting & Error Handling
+- [x] Completed
 - **Steps**:
   1. Implement pretty-printing for `ExecutionResult` and `SandboxMetadata`.
   2. Ensure all errors are printed to stderr with clear context.
@@ -117,6 +123,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: Task 3.1.
 
 ### Task 3.3: MCP Tool Registration & Request Dispatch
+- [x] Completed
 - **Steps**:
   1. Register `sandbox-create` tool in the MCP server.
   2. Implement request handler that maps JSON parameters to `SandboxConfig`.
@@ -127,6 +134,7 @@ This task list defines the granular units of work for implementing the sandbox f
 - **Dependencies**: Phase 2.
 
 ### Task 3.4: MCP Result Mapping
+- [x] Completed
 - **Steps**:
   1. Map `SandboxMetadata` and `ExecutionResult` back to MCP-compatible JSON responses.
   2. Ensure domain errors are mapped to MCP protocol error codes.
