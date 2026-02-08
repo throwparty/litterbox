@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
+use std::process::Command;
 
 use bollard::container::LogOutput;
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
@@ -16,7 +17,7 @@ use bollard::body_full;
 use bytes::Bytes;
 use tar::{Archive, Builder};
 use bollard::errors::Error as BollardError;
-use bollard::Docker;
+use bollard::{Docker, API_DEFAULT_VERSION};
 use futures_util::future::BoxFuture;
 use futures_util::StreamExt;
 
@@ -75,9 +76,13 @@ impl DockerCompute {
     }
 
     pub fn connect() -> Result<Self, SandboxError> {
-        let client = Docker::connect_with_local_defaults()
-            .map_err(|source| SandboxError::Compute(ComputeError::Connection { source }))?;
+        let client = connect_docker_client()?;
         Ok(Self { client })
+    }
+
+    fn connect_with_defaults() -> Result<Docker, SandboxError> {
+        Docker::connect_with_local_defaults()
+            .map_err(|source| SandboxError::Compute(ComputeError::Connection { source }))
     }
 
     pub async fn ensure_image(&self, image: &str) -> Result<(), SandboxError> {
@@ -291,6 +296,51 @@ impl DockerCompute {
         }
         Ok(buffer)
     }
+}
+
+fn connect_docker_client() -> Result<Docker, SandboxError> {
+    if let Some(host) = docker_host_from_context() {
+        return connect_with_host(&host);
+    }
+    DockerCompute::connect_with_defaults()
+}
+
+fn connect_with_host(host: &str) -> Result<Docker, SandboxError> {
+    let (scheme, rest) = match host.split_once("://") {
+        Some((scheme, rest)) => (scheme, rest),
+        None => ("unix", host),
+    };
+
+    match scheme {
+        "unix" => Docker::connect_with_unix(rest, 120, API_DEFAULT_VERSION)
+            .map_err(|source| SandboxError::Compute(ComputeError::Connection { source })),
+        "tcp" => {
+            let endpoint = format!("http://{}", rest);
+            Docker::connect_with_http(&endpoint, 120, API_DEFAULT_VERSION)
+                .map_err(|source| SandboxError::Compute(ComputeError::Connection { source }))
+        }
+        _ => DockerCompute::connect_with_defaults(),
+    }
+}
+
+fn docker_host_from_context() -> Option<String> {
+    let output = Command::new("docker")
+        .args([
+            "context",
+            "inspect",
+            "-f",
+            "{{.Endpoints.docker.Host}}",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let host = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if host.is_empty() {
+        return None;
+    }
+    Some(host)
 }
 
 impl Compute for DockerCompute {
