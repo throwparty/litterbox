@@ -1,3 +1,4 @@
+use glob::{MatchOptions, Pattern};
 use rmcp::{
     ErrorData as McpError, ServerHandler, ServiceExt,
     handler::server::tool::ToolRouter,
@@ -8,9 +9,8 @@ use rmcp::{
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
-
-use glob::{MatchOptions, Pattern};
 use std::path::Path;
+use tempfile;
 
 #[cfg(test)]
 use glob::glob as glob_paths;
@@ -154,6 +154,14 @@ impl SandboxServer {
         write_in_sandbox(&provider, &metadata, &args.path, &args.content)
             .await
             .map_err(|error| map_write_error(&args.sandbox, error))?;
+        snapshot_after(
+            &provider,
+            &metadata,
+            &args.sandbox,
+            SnapshotTrigger::Write { path: args.path },
+        )
+        .await
+        .map_err(|error| map_error(error))?;
         Ok(CallToolResult::success(Vec::new()))
     }
 
@@ -170,6 +178,14 @@ impl SandboxServer {
         patch_in_sandbox(&provider, &metadata, &args.path, &args.diff)
             .await
             .map_err(|error| map_patch_error(&args.sandbox, error))?;
+        snapshot_after(
+            &provider,
+            &metadata,
+            &args.sandbox,
+            SnapshotTrigger::Patch { path: args.path },
+        )
+        .await
+        .map_err(|error| map_error(error))?;
         Ok(CallToolResult::success(Vec::new()))
     }
 
@@ -192,6 +208,16 @@ impl SandboxServer {
         )
         .await
         .map_err(|error| map_bash_error(&args.sandbox, error))?;
+        snapshot_after(
+            &provider,
+            &metadata,
+            &args.sandbox,
+            SnapshotTrigger::Bash {
+                command: args.command.clone(),
+            },
+        )
+        .await
+        .map_err(|error| map_error(error))?;
         let content = Content::json(result)
             .map_err(|error| McpError::internal_error(error.to_string(), None))?;
         Ok(CallToolResult::success(vec![content]))
@@ -272,9 +298,10 @@ fn build_provider() -> Result<DockerSandboxProvider<ThreadSafeScm, DockerCompute
 }
 
 fn build_provider_with_config(
-    _config: &crate::config::Config,
+    config: &crate::config::Config,
 ) -> Result<DockerSandboxProvider<ThreadSafeScm, DockerCompute>, SandboxError> {
-    let scm = ThreadSafeScm::open(std::path::Path::new("."))?;
+    let scm =
+        ThreadSafeScm::open_with_prefix(std::path::Path::new("."), config.project.slug.clone())?;
     let compute = DockerCompute::connect()?;
     Ok(DockerSandboxProvider::new(scm, compute))
 }
@@ -297,7 +324,8 @@ fn map_sandbox_error(name: &str, error: SandboxError) -> McpError {
 
 fn resolve_sandbox_metadata(name: &str) -> Result<SandboxMetadata, SandboxError> {
     let slug = slugify_name(name)?;
-    let scm = ThreadSafeScm::open(Path::new("."))?;
+    let config = config_loader::load_final().map_err(|e| SandboxError::Config(e.to_string()))?;
+    let scm = ThreadSafeScm::open_with_prefix(Path::new("."), config.project.slug)?;
     let repo_prefix = scm.repo_prefix()?;
     Ok(SandboxMetadata {
         name: name.to_string(),
@@ -457,6 +485,13 @@ enum BashError {
     Sandbox(SandboxError),
 }
 
+#[derive(Debug, Clone)]
+enum SnapshotTrigger {
+    Write { path: String },
+    Patch { path: String },
+    Bash { command: String },
+}
+
 fn map_read_error(sandbox: &str, error: ReadError) -> McpError {
     match error {
         ReadError::Sandbox(error) => map_sandbox_error(sandbox, error),
@@ -511,6 +546,46 @@ fn map_bash_error(sandbox: &str, error: BashError) -> McpError {
     match error {
         BashError::Sandbox(error) => map_sandbox_error(sandbox, error),
     }
+}
+
+async fn snapshot_after<P: SandboxProvider>(
+    provider: &P,
+    metadata: &SandboxMetadata,
+    sandbox: &str,
+    trigger: SnapshotTrigger,
+) -> Result<(), SandboxError> {
+    let config = config_loader::load_final().map_err(|e| SandboxError::Config(e.to_string()))?;
+    let scm = ThreadSafeScm::for_sandbox(Path::new("."), config.project.slug.clone(), sandbox)?;
+
+    // Download container /src to temp staging directory
+    let staging_dir = tempfile::tempdir()
+        .map_err(|e| SandboxError::Config(format!("Failed to create temp dir: {}", e)))?;
+    provider
+        .download_path(metadata, "/src", staging_dir.path())
+        .await?;
+
+    // Commit from staging directory to snapshot branch
+    let _ = scm.commit_snapshot_from_staging(staging_dir.path(), &snapshot_message(&trigger))?;
+
+    Ok(())
+}
+
+fn snapshot_message(trigger: &SnapshotTrigger) -> String {
+    match trigger {
+        SnapshotTrigger::Write { path } => format!("write: {}", path),
+        SnapshotTrigger::Patch { path } => format!("patch: {}", path),
+        SnapshotTrigger::Bash { command } => format!("bash: {}", command),
+    }
+}
+
+#[allow(unused)]
+fn snapshot_after_with_scm<S: Scm>(scm: &S, trigger: SnapshotTrigger) -> Result<(), SandboxError> {
+    if !scm.has_changes()? {
+        return Ok(());
+    }
+    scm.stage_all()?;
+    scm.commit_snapshot(&snapshot_message(&trigger))?;
+    Ok(())
 }
 
 async fn read_in_sandbox<P: SandboxProvider>(
@@ -1022,11 +1097,85 @@ fn parse_grep_output(output: &str) -> Vec<String> {
 mod tests {
     use super::*;
     use futures_util::future::BoxFuture;
+    use git2::{ErrorCode, Oid, Repository, Signature};
     use std::fs;
     use std::io::Write;
+    use std::process::Command;
     use std::sync::{Arc, Mutex};
     use tempfile::NamedTempFile;
     use tempfile::TempDir;
+
+    struct TestScm {
+        has_changes: bool,
+        committed_messages: Mutex<Vec<String>>,
+    }
+
+    impl TestScm {
+        fn new(has_changes: bool) -> Self {
+            Self {
+                has_changes,
+                committed_messages: Mutex::new(Vec::new()),
+            }
+        }
+    }
+
+    impl Scm for TestScm {
+        fn create_branch(&self, _slug: &str) -> Result<String, SandboxError> {
+            Ok("branch".to_string())
+        }
+
+        fn delete_branch(&self, _slug: &str) -> Result<(), SandboxError> {
+            Ok(())
+        }
+
+        fn make_archive(&self, _reference: &str) -> Result<Vec<u8>, SandboxError> {
+            Ok(Vec::new())
+        }
+
+        fn list_sandboxes(&self) -> Result<Vec<String>, SandboxError> {
+            Ok(Vec::new())
+        }
+
+        fn repo_prefix(&self) -> Result<String, SandboxError> {
+            Ok("repo".to_string())
+        }
+
+        fn has_changes(&self) -> Result<bool, SandboxError> {
+            Ok(self.has_changes)
+        }
+
+        fn stage_all(&self) -> Result<(), SandboxError> {
+            Ok(())
+        }
+
+        fn commit_snapshot(&self, message: &str) -> Result<Option<Oid>, SandboxError> {
+            self.committed_messages
+                .lock()
+                .expect("commit lock")
+                .push(message.to_string());
+            Ok(Some(Oid::zero()))
+        }
+
+        fn apply_patch(&self, _diff: &str) -> Result<(), SandboxError> {
+            Ok(())
+        }
+    }
+
+    fn init_repo() -> (TempDir, Repository) {
+        let tempdir = TempDir::new().expect("tempdir");
+        let repo = Repository::init(tempdir.path()).expect("init repo");
+        fs::write(tempdir.path().join("README.md"), "initial").expect("write");
+        let mut index = repo.index().expect("index");
+        index.add_path(Path::new("README.md")).expect("add path");
+        let tree_id = index.write_tree().expect("write tree");
+        {
+            let tree = repo.find_tree(tree_id).expect("tree");
+            let signature = Signature::now("Test", "test@example.com").expect("signature");
+            repo.commit(Some("HEAD"), &signature, &signature, "init", &tree, &[])
+                .expect("commit");
+        }
+        (tempdir, repo)
+    }
 
     struct TestProvider {
         shell_result: Mutex<Option<Result<ExecutionResult, SandboxError>>>,
@@ -1853,6 +2002,155 @@ mod tests {
             }),
         );
         assert!(error.to_string().contains("Sandbox 'missing' not found."));
+    }
+
+    #[test]
+    fn snapshot_message_for_triggers() {
+        assert_eq!(
+            snapshot_message(&SnapshotTrigger::Write {
+                path: "README.md".to_string()
+            }),
+            "write: README.md"
+        );
+        assert_eq!(
+            snapshot_message(&SnapshotTrigger::Patch {
+                path: "src/lib.rs".to_string()
+            }),
+            "patch: src/lib.rs"
+        );
+        assert_eq!(
+            snapshot_message(&SnapshotTrigger::Bash {
+                command: "cargo test".to_string()
+            }),
+            "bash: cargo test"
+        );
+    }
+
+    #[test]
+    fn snapshot_after_with_scm_skips_when_clean() {
+        let scm = TestScm::new(false);
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Write {
+                path: "a".to_string(),
+            },
+        )
+        .expect("snapshot");
+        let committed = scm.committed_messages.lock().expect("commit lock");
+        assert!(committed.is_empty());
+    }
+
+    #[test]
+    fn snapshot_after_with_scm_commits_when_dirty() {
+        let scm = TestScm::new(true);
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Patch {
+                path: "b".to_string(),
+            },
+        )
+        .expect("snapshot");
+        let committed = scm.committed_messages.lock().expect("commit lock");
+        assert_eq!(committed.as_slice(), &["patch: b".to_string()]);
+    }
+
+    #[test]
+    fn snapshot_after_with_scm_integration_commits() {
+        let (tempdir, repo) = init_repo();
+        fs::write(tempdir.path().join("README.md"), "updated").expect("write");
+        let scm = ThreadSafeScm::open(tempdir.path()).expect("open scm");
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Write {
+                path: "README.md".to_string(),
+            },
+        )
+        .expect("snapshot");
+
+        let snapshot_ref = repo
+            .find_reference("refs/heads/litterbox-snapshots")
+            .expect("snapshot ref");
+        let snapshot_commit = snapshot_ref.peel_to_commit().expect("snapshot commit");
+        assert_eq!(
+            snapshot_commit.message().expect("message"),
+            "write: README.md"
+        );
+        let head_commit = repo
+            .head()
+            .expect("head")
+            .peel_to_commit()
+            .expect("head commit");
+        assert_ne!(snapshot_commit.id(), head_commit.id());
+    }
+
+    #[test]
+    fn snapshot_after_with_scm_integration_skips_clean_repo() {
+        let (tempdir, repo) = init_repo();
+        let scm = ThreadSafeScm::open(tempdir.path()).expect("open scm");
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Write {
+                path: "README.md".to_string(),
+            },
+        )
+        .expect("snapshot");
+
+        match repo.find_reference("refs/heads/litterbox-snapshots") {
+            Ok(_) => panic!("unexpected snapshot ref"),
+            Err(error) => assert_eq!(error.code(), ErrorCode::NotFound),
+        }
+    }
+
+    #[test]
+    fn end_to_end_snapshot_workflow() {
+        let (tempdir, repo) = init_repo();
+        let scm = ThreadSafeScm::open(tempdir.path()).expect("open scm");
+
+        fs::write(tempdir.path().join("README.md"), "write").expect("write");
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Write {
+                path: "README.md".to_string(),
+            },
+        )
+        .expect("snapshot write");
+
+        fs::write(tempdir.path().join("README.md"), "patch").expect("write patch");
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Patch {
+                path: "README.md".to_string(),
+            },
+        )
+        .expect("snapshot patch");
+
+        let status = Command::new("sh")
+            .arg("-c")
+            .arg("printf %s bash >> README.md")
+            .current_dir(tempdir.path())
+            .status()
+            .expect("bash");
+        assert!(status.success());
+        snapshot_after_with_scm(
+            &scm,
+            SnapshotTrigger::Bash {
+                command: "printf %s bash >> README.md".to_string(),
+            },
+        )
+        .expect("snapshot bash");
+
+        let snapshot_ref = repo
+            .find_reference("refs/heads/litterbox-snapshots")
+            .expect("snapshot ref");
+        let head = snapshot_ref.peel_to_commit().expect("snapshot commit");
+        assert_eq!(
+            head.message().expect("message"),
+            "bash: printf %s bash >> README.md"
+        );
+        let parent = head.parent(0).expect("parent");
+        assert_eq!(parent.message().expect("message"), "patch: README.md");
+        let grandparent = parent.parent(0).expect("parent");
+        assert_eq!(grandparent.message().expect("message"), "write: README.md");
     }
 
     #[test]

@@ -451,7 +451,39 @@ fn append_dir(builder: &mut Builder<Vec<u8>>, root: &Path, dir: &Path) -> Result
 fn extract_tar(dest_path: &Path, tar: &[u8]) -> Result<(), SandboxError> {
     fs::create_dir_all(dest_path)?;
     let mut archive = Archive::new(Cursor::new(tar));
-    archive.unpack(dest_path)?;
+    
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path = entry.path()?;
+        
+        // Skip .git directory to prevent repository corruption
+        if path.starts_with(".git") || path.starts_with("src/.git") {
+            continue;
+        }
+        
+        // Strip leading "src/" or "/src/" from paths to avoid replicating the /src directory
+        let stripped_path = path
+            .strip_prefix("src/")
+            .or_else(|_| path.strip_prefix("/src/"))
+            .or_else(|_| path.strip_prefix("src"))
+            .unwrap_or(&path);
+        
+        // Skip if stripping results in empty path (e.g., if path was exactly "src")
+        if stripped_path.as_os_str().is_empty() {
+            continue;
+        }
+        
+        let dest = dest_path.join(stripped_path);
+        
+        // Create parent directories if needed
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
+        // Extract the entry to the stripped path
+        entry.unpack(&dest)?;
+    }
+    
     Ok(())
 }
 
