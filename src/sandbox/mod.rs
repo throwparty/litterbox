@@ -17,7 +17,6 @@ use crate::domain::{
 };
 use crate::scm::Scm;
 
-const DEFAULT_IMAGE: &str = "busybox:latest";
 const DEFAULT_WORKDIR: &str = "/src";
 
 pub trait SandboxProvider {
@@ -78,7 +77,7 @@ where
     fn create<'a>(
         &'a self,
         name: &'a str,
-        _config: &'a SandboxConfig,
+        config: &'a SandboxConfig,
     ) -> BoxFuture<'a, Result<SandboxMetadata, SandboxError>> {
         Box::pin(async move {
             let slug = slugify_name(name)?;
@@ -99,14 +98,14 @@ where
                 }
             };
 
-            if let Err(error) = self.compute.ensure_image(DEFAULT_IMAGE).await {
+            if let Err(error) = self.compute.ensure_image(&config.image).await {
                 let _ = self.scm.delete_branch(&slug);
                 return Err(error);
             }
 
             let spec = ContainerSpec {
                 name: container_name_for_slug(&repo_prefix, &slug),
-                image: DEFAULT_IMAGE.to_string(),
+                image: config.image.clone(),
                 command: vec!["sh".to_string(), "-c".to_string(), "tail -f /dev/null".to_string()],
                 working_dir: Some(DEFAULT_WORKDIR.to_string()),
             };
@@ -132,36 +131,34 @@ where
                 return Err(error);
             }
 
-            let startup_command = vec![
-                "sh".to_string(),
-                "-c".to_string(),
-                "echo hello world > /proc/1/fd/1".to_string(),
-            ];
-            let result = match self
-                .compute
-                .exec(&container_id, &startup_command, Some(DEFAULT_WORKDIR))
-                .await
-            {
-                Ok(result) => result,
-                Err(error) => {
+            if let Some(command) = &config.setup_command {
+                let startup_command = vec!["sh".to_string(), "-c".to_string(), command.clone()];
+                let result = match self
+                    .compute
+                    .exec(&container_id, &startup_command, Some(DEFAULT_WORKDIR))
+                    .await
+                {
+                    Ok(result) => result,
+                    Err(error) => {
+                        let _ = self.compute.delete_container(&container_id).await;
+                        let _ = self.scm.delete_branch(&slug);
+                        return Err(error);
+                    }
+                };
+
+                if result.exit_code != 0 {
                     let _ = self.compute.delete_container(&container_id).await;
                     let _ = self.scm.delete_branch(&slug);
-                    return Err(error);
+                    let stderr = if result.stderr.is_empty() {
+                        result.stdout
+                    } else {
+                        result.stderr
+                    };
+                    return Err(SandboxError::SetupCommandFailed {
+                        exit_code: result.exit_code,
+                        stderr,
+                    });
                 }
-            };
-
-            if result.exit_code != 0 {
-                let _ = self.compute.delete_container(&container_id).await;
-                let _ = self.scm.delete_branch(&slug);
-                let stderr = if result.stderr.is_empty() {
-                    result.stdout
-                } else {
-                    result.stderr
-                };
-                return Err(SandboxError::SetupCommandFailed {
-                    exit_code: result.exit_code,
-                    stderr,
-                });
             }
 
             Ok(SandboxMetadata {
@@ -316,7 +313,15 @@ mod tests {
         let provider = DockerSandboxProvider::new(scm, compute);
 
         let name = format!("sandbox-{}", unique_suffix());
-        let metadata = provider.create(&name, &SandboxConfig { setup_command: None }).await?;
+        let metadata = provider
+            .create(
+                &name,
+                &SandboxConfig {
+                    image: "busybox:latest".to_string(),
+                    setup_command: None,
+                },
+            )
+            .await?;
 
         let client = provider.compute.client();
         let container = client.inspect_container(&metadata.container_id, None).await?;
@@ -352,7 +357,15 @@ mod tests {
         let provider = DockerSandboxProvider::new(scm, compute);
 
         let name = format!("sandbox-{}", unique_suffix());
-        let metadata = provider.create(&name, &SandboxConfig { setup_command: None }).await?;
+        let metadata = provider
+            .create(
+                &name,
+                &SandboxConfig {
+                    image: "busybox:latest".to_string(),
+                    setup_command: None,
+                },
+            )
+            .await?;
 
         provider.pause(&metadata.container_id).await?;
         let client = provider.compute.client();
@@ -394,7 +407,15 @@ mod tests {
         let provider = DockerSandboxProvider::new(scm, compute);
 
         let name = format!("sandbox-{}", unique_suffix());
-        let metadata = provider.create(&name, &SandboxConfig { setup_command: None }).await?;
+        let metadata = provider
+            .create(
+                &name,
+                &SandboxConfig {
+                    image: "busybox:latest".to_string(),
+                    setup_command: None,
+                },
+            )
+            .await?;
 
         let result = provider
             .shell(

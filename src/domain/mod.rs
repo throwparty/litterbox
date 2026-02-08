@@ -5,7 +5,8 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct SandboxConfig {
-    pub setup_command: Option<Vec<String>>,
+    pub image: String,
+    pub setup_command: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -34,7 +35,7 @@ impl fmt::Display for SandboxConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.setup_command {
             Some(command) if command.is_empty() => write!(f, "setup_command=<empty>"),
-            Some(command) => write!(f, "setup_command={}", command.join(" ")),
+            Some(command) => write!(f, "setup_command={command}"),
             None => write!(f, "setup_command=<none>"),
         }
     }
@@ -86,6 +87,8 @@ pub enum SandboxError {
     SetupCommandFailed { exit_code: i32, stderr: String },
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Configuration error: {0}")]
+    Config(String),
 }
 
 #[derive(Error, Debug)]
@@ -100,6 +103,24 @@ pub enum ScmError {
     BranchDelete { #[source] source: git2::Error },
     #[error("Git archive failed: {source}")]
     Archive { #[source] source: git2::Error },
+    #[error("Git status failed: {source}")]
+    Status { #[source] source: git2::Error },
+    #[error("Git index add failed: {source}")]
+    IndexAdd { #[source] source: git2::Error },
+    #[error("Git index write failed: {source}")]
+    IndexWrite { #[source] source: git2::Error },
+    #[error("Git index write tree failed: {source}")]
+    IndexWriteTree { #[source] source: git2::Error },
+    #[error("Git commit failed: {source}")]
+    Commit { #[source] source: git2::Error },
+    #[error("Git signature failed: {source}")]
+    Signature { #[source] source: git2::Error },
+    #[error("Git head failed: {source}")]
+    Head { #[source] source: git2::Error },
+    #[error("Git reference failed: {source}")]
+    Reference { #[source] source: git2::Error },
+    #[error("failed to apply patch: {message}")]
+    ApplyPatch { message: String },
 }
 
 #[derive(Error, Debug)]

@@ -13,6 +13,7 @@ use rmcp::{
 use schemars::JsonSchema;
 use serde::Deserialize;
 
+use crate::config_loader;
 use crate::domain::{SandboxConfig, SandboxError};
 use crate::sandbox::{DockerSandboxProvider, SandboxProvider};
 use crate::scm::ThreadSafeScm;
@@ -42,7 +43,12 @@ impl SandboxServer {
         Parameters(args): Parameters<SandboxCreateArgs>,
     ) -> Result<CallToolResult, McpError> {
         let provider = build_provider().map_err(map_error)?;
-        let config = SandboxConfig { setup_command: None };
+        let loaded_config = config_loader::load_final()
+            .map_err(|e| McpError::internal_error(format!("Failed to load config: {}", e), None))?;
+        let config = SandboxConfig {
+            image: loaded_config.docker.image.unwrap(),
+            setup_command: loaded_config.docker.setup_command,
+        };
         let metadata = provider.create(&args.name, &config).await.map_err(map_error)?;
         let content = Content::json(metadata)
             .map_err(|error| McpError::internal_error(error.to_string(), None))?;

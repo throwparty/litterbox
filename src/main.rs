@@ -4,18 +4,21 @@ use std::process::ExitCode;
 use bollard::query_parameters::ListContainersOptionsBuilder;
 use clap::{Parser, Subcommand};
 use litterbox::compute::DockerCompute;
-use litterbox::domain::{ComputeError, slugify_name, SandboxError, SandboxMetadata, SandboxStatus};
+use litterbox::domain::{ComputeError, SandboxError, SandboxMetadata, SandboxStatus, slugify_name};
 use litterbox::mcp;
 use litterbox::sandbox::{
-    branch_name_for_slug,
-    container_name_for_slug,
-    DockerSandboxProvider,
-    SandboxProvider,
+    DockerSandboxProvider, SandboxProvider, branch_name_for_slug, container_name_for_slug,
 };
 use litterbox::scm::{Scm, ThreadSafeScm};
 
 #[derive(Parser)]
-#[command(author, version, about)]
+#[command(
+    author,
+    version,
+    about = "Litterbox - sandboxing tool for software engineering agents",
+    long_about = "Litterbox provides isolated sandbox environments combining SCM branches and containerized compute.\n\
+                  Each sandbox pairs a Git branch with a Docker container for safe, isolated development work."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -23,24 +26,78 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// List all sandboxes in the current repository
+    ///
+    /// Shows all sandboxes with their current status (active, paused, missing, or error).
+    /// Status information requires Docker to be available; otherwise statuses show as unknown.
     List,
+    
+    /// Run the MCP (Model Control Protocol) server over stdio
+    ///
+    /// Starts the Litterbox MCP server, enabling communication with AI agents and tools
+    /// that support the Model Control Protocol. The server uses standard input/output
+    /// for communication.
     Stdio,
+    
+    /// Pause one or more sandboxes
+    ///
+    /// Pauses the container(s) associated with sandbox(es), preserving their state
+    /// while freeing up system resources. Paused sandboxes can be resumed later.
     Pause {
-        #[arg(required_unless_present_any = ["all_envs", "all_repos"])]
+        /// Name of the sandbox to pause
+        #[arg(
+            required_unless_present_any = ["all_envs", "all_repos"],
+            help = "Sandbox name to pause"
+        )]
         name: Option<String>,
-        #[arg(long, conflicts_with = "all_repos")]
+        
+        /// Pause all sandboxes in the current repository
+        #[arg(
+            long,
+            conflicts_with = "all_repos",
+            help = "Pause all sandboxes in this repository"
+        )]
         all_envs: bool,
-        #[arg(long, conflicts_with = "all_envs")]
+        
+        /// Pause all Litterbox sandboxes across all repositories
+        #[arg(
+            long,
+            conflicts_with = "all_envs",
+            help = "Pause all Litterbox containers system-wide"
+        )]
         all_repos: bool,
     },
-    Resume { name: String },
-    Delete {
+    
+    /// Resume a paused sandbox
+    ///
+    /// Resumes a previously paused sandbox, restoring its container to an active state.
+    Resume {
+        /// Name of the sandbox to resume
         name: String,
+    },
+    
+    /// Delete a sandbox
+    ///
+    /// Removes both the sandbox's Git branch and container. Active sandboxes require
+    /// the --force flag to prevent accidental deletion.
+    Delete {
+        /// Name of the sandbox to delete
+        name: String,
+        
+        /// Force deletion even if the sandbox is active
         #[arg(short, long)]
         force: bool,
     },
+    
+    /// Execute a shell command in a sandbox
+    ///
+    /// Runs the specified command inside the sandbox's container and returns the output.
+    /// The command is executed in the sandbox's working directory.
     Shell {
+        /// Name of the sandbox to run the command in
         name: String,
+        
+        /// Command and arguments to execute
         #[arg(required = true, trailing_var_arg = true)]
         command: Vec<String>,
     },
@@ -64,6 +121,16 @@ async fn main() -> ExitCode {
 }
 
 async fn handle_stdio() -> ExitCode {
+    // Load and print config for debugging
+    match litterbox::config_loader::load_final() {
+        Ok(config) => {
+            eprintln!("Loaded configuration: {:#?}", config);
+        }
+        Err(error) => {
+            eprintln!("Warning: Failed to load config: {}", error);
+        }
+    }
+
     if let Err(error) = mcp::run_stdio().await {
         return report_error("stdio", error);
     }
@@ -110,9 +177,10 @@ async fn handle_list() -> ExitCode {
                             SandboxStatus::Error("not running".to_string())
                         }
                     }
-                    Err(bollard::errors::Error::DockerResponseServerError { status_code: 404, .. }) => {
-                        SandboxStatus::Error("missing container".to_string())
-                    }
+                    Err(bollard::errors::Error::DockerResponseServerError {
+                        status_code: 404,
+                        ..
+                    }) => SandboxStatus::Error("missing container".to_string()),
                     Err(error) => return report_error("list", error),
                 }
             }
@@ -215,7 +283,10 @@ async fn handle_pause_all_repos() -> ExitCode {
         let Some(id) = container.id.as_ref() else {
             continue;
         };
-        let running = matches!(container.state, Some(bollard::models::ContainerSummaryStateEnum::RUNNING));
+        let running = matches!(
+            container.state,
+            Some(bollard::models::ContainerSummaryStateEnum::RUNNING)
+        );
         if !running {
             continue;
         }
@@ -283,7 +354,9 @@ async fn handle_delete(name: String, force: bool) -> ExitCode {
                 return report_error("delete", "sandbox is active; use --force to delete");
             }
         }
-        Err(bollard::errors::Error::DockerResponseServerError { status_code: 404, .. }) => {}
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => {}
         Err(error) => return report_error("delete", error),
     }
 
@@ -377,7 +450,10 @@ fn is_container_missing(error: &SandboxError) -> bool {
     matches!(
         error,
         SandboxError::Compute(ComputeError::ContainerPause {
-            source: bollard::errors::Error::DockerResponseServerError { status_code: 404, .. }
+            source: bollard::errors::Error::DockerResponseServerError {
+                status_code: 404,
+                ..
+            }
         })
     )
 }
