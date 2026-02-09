@@ -19,7 +19,7 @@ The existing technology stack (Rust, `bollard` for Docker interaction, `serde` a
 The `src/config.rs` file will be updated to define new data structures for port forwarding configuration.
 
 *   A `PortsConfig` struct will be added, containing a `ports` field which is a `Vec` of `ForwardedPort` structs.
-*   The `Config` struct will be extended to include an optional `ports: Option<PortsConfig>` field.
+*   The `Config` struct will be extended to include a `ports: PortsConfig` field with a default empty list.
 *   A `ForwardedPort` struct will define:
     *   `target: u16`: The port number inside the container to be forwarded.
     *   `name: String`: A logical name for the service (e.g., "web-server").
@@ -50,14 +50,13 @@ This logic will be integrated within the `src/sandbox/mod.rs` module, specifical
 1.  **Extend `SandboxConfig`**: The `SandboxConfig` struct (defined in `src/domain.rs`) will be extended to carry the parsed `PortsConfig` from the `config_loader`.
 
 2.  **Host Port Allocation**: In `DockerSandboxProvider::create`, for each `ForwardedPort` from the `SandboxConfig`:
-    *   A utility function will dynamically find an available host port within a predefined range (e.g., 49152-65535, as per IANA ephemeral port range). This will involve attempting to bind to the port and immediately unbinding to check availability.
+    *   A utility function will dynamically find an available host port within the default range 3000-8000. This will involve attempting to bind to the port and immediately unbinding to check availability.
     *   The allocated host port will be stored along with the `container_port` and slugified `name`.
 
 3.  **Environment Variable Construction**: For each allocated host port and its corresponding slugified service name, an environment variable string will be generated: `LITTERBOX_FWD_PORT_<SLUGIFIED_SERVICE_NAME>=<HOST_PORT>`.
 
 4.  **`SandboxMetadata` Extension**: The `SandboxMetadata` struct (returned by `provider.create()` and used by the MCP server) will be extended to include:
-    *   `forwarded_ports: Vec<PortInfo>`: A list of objects, each containing `container_port`, `host_port`, and the original `name` of the service.
-    *   `environment_variables: HashMap<String, String>`: A map of generated environment variable names to their values.
+    *   `forwarded_ports: Vec<ForwardedPortMapping>`: A list of objects, each containing `target`, `host_port`, `name`, and `env_var`.
 
 ### 3.3. `DockerSandboxProvider` Modifications (`src/sandbox/mod.rs`, `src/compute`)
 
@@ -65,31 +64,31 @@ The `src/compute/mod.rs` file will need modifications to its `ContainerSpec` str
 
 1.  **Extend `src/compute/mod.rs::ContainerSpec`**:
     Add the following fields to the `ContainerSpec` struct:
-    *   `pub env: Option<HashMap<String, String>>`: A map of environment variable names to their values.
-    *   `pub port_bindings: Option<HashMap<String, Vec<bollard::models::PortBinding>>>`: A map from container port (e.g., "8080/tcp") to a list of `bollard::models::PortBinding` structs.
+    *   `pub env: Vec<String>`: A list of environment variable strings in `KEY=VALUE` form.
+    *   `pub port_bindings: HashMap<String, Vec<bollard::models::PortBinding>>`: A map from container port (e.g., "8080/tcp") to a list of `bollard::models::PortBinding` structs.
 
 2.  **Modify `src/compute/mod.rs::DockerCompute::create_container`**:
     This function will be updated to utilize the new fields in `ContainerSpec`.
     *   When constructing the `bollard::models::ContainerCreateBody`:
-        *   The `env` field of `ContainerCreateBody` will be populated from `spec.env`.
-        *   A `bollard::models::HostConfig` will be created. Its `port_bindings` field will be populated from `spec.port_bindings`. The `HostConfig` will then be assigned to the `HostConfig` field of `ContainerCreateBody`.
+        *   The `env` field of `ContainerCreateBody` will be populated from `spec.env` when non-empty.
+        *   A `bollard::models::HostConfig` will be created. Its `port_bindings` field will be populated from `spec.port_bindings` when non-empty. The `HostConfig` will then be assigned to the `HostConfig` field of `ContainerCreateBody`.
 
 3.  **`DockerSandboxProvider::create` in `src/sandbox/mod.rs`**:
     This method will be updated to:
     *   Access the `PortsConfig` from the `SandboxConfig`.
     *   Perform host port allocation and environment variable generation (as described in section 3.2).
-    *   Construct the `HashMap<String, String>` for `env` to be passed to `ContainerSpec`.
+    *   Construct the `Vec<String>` for `env` to be passed to `ContainerSpec`.
     *   Construct the `HashMap<String, Vec<bollard::models::PortBinding>>` for `port_bindings` to be passed to `ContainerSpec`. For each `ForwardedPort`, a `bollard::models::PortBinding` will be created with `HostPort` set to the allocated host port (as a `String`) and `HostIp` set to "0.0.0.0". The key for the outer HashMap will be the `container_port` followed by "/tcp" (e.g., "8080/tcp").
     *   Create an enriched `ContainerSpec` with these `env` and `port_bindings`.
     *   Call `self.compute.create_container(&enriched_spec)`.
-    *   Populate the `SandboxMetadata` with the `forwarded_ports` and `environment_variables` generated.
+    *   Populate the `SandboxMetadata` with the generated `forwarded_ports`.
 
 ### 3.4. `sandbox-create` Tool Response (`src/mcp.rs`)
 
 The `sandbox-create` handler within `src/mcp.rs` will:
 
 *   Call `provider.create()` which now returns an enriched `SandboxMetadata`.
-*   Serialize this `SandboxMetadata` (including the new `forwarded_ports` and `environment_variables` fields) as JSON in its response to the client.
+*   Serialize this `SandboxMetadata` (including the new `forwarded_ports` field) as JSON in its response to the client.
 
 ## 4. Data Flow Diagrams
 
@@ -107,7 +106,7 @@ graph TD
     Compute_Create_Container -->|"6. Call bollard::client::Docker::create_container"| Bollard_SDK["bollard (Docker SDK)"]
     Bollard_SDK -->|"7. Create Container with HostConfig & Env"| Sandbox_Container["Sandbox Container"]
     Compute_Create_Container -->|"8. Container ID & Metadata"| Internal_Logic
-    Internal_Logic -->|"9. Enriched SandboxMetadata with forwarded ports & env vars"| MCP_Server
+    Internal_Logic -->|"9. Enriched SandboxMetadata with forwarded ports"| MCP_Server
     MCP_Server -->|"10. Return sandbox details & forwarded ports"| User
 ```
 
@@ -132,19 +131,19 @@ graph TD
     Config_Struct -->|"3. Passed to Sandbox Provider"| Sandbox_Provider_Create_CF[DockerSandboxProvider::create]
     Sandbox_Provider_Create_CF -->|"4. Generate Env Vars & Port Bindings"| Container_Spec_CF[ContainerSpec]
     Container_Spec_CF -->|"5. Docker Container Creation"| Docker_Daemon[Docker Daemon]
-    Docker_Daemon -->|"6. Env Vars accessible inside container| Sandbox_Container_CF[Sandbox Container]
+    Docker_Daemon -->|"6. Env Vars accessible inside container"| Sandbox_Container_CF[Sandbox Container]
 ```
 
 ## 5. Testing Strategy
 
 *   **Unit Tests**:
-    *   `src/config.rs`: Test `PortForwardingConfig` (de)serialization.
+*   `src/config.rs`: Test `PortsConfig` (de)serialization.
     *   `src/config_loader.rs`:
-        *   Test parsing of `port-forwarding` section from TOML.
-        *   Test validation of `container_port` and `name`.
-        *   Test slugification logic and ensure correct output (e.g., "My Web Server" -> "MY_WEB_SERVER").
-        *   Test conflict detection for slugified names (e.g., two services resulting in the same slugified name).
-        *   Test default and merge behavior for `PortForwardingConfig`.
+    *   Test parsing of `[[ports]]` entries from TOML.
+    *   Test validation of `target` and `name`.
+    *   Test slugification logic and ensure correct output (e.g., "My Web Server" -> "my-web-server" for env var construction).
+    *   Test conflict detection for slugified names (e.g., two services resulting in the same slugified name).
+    *   Test default and merge behavior for `PortsConfig`.
     *   `src/sandbox/mod.rs`:
         *   Test host port allocation logic in isolation, ensuring it finds available ports and handles exhaustion.
         *   Test environment variable generation based on `PortMappingEntry` and slugification.
@@ -163,6 +162,6 @@ graph TD
 ## 6. Deployment Considerations
 
 *   The port forwarding feature will be implemented as an integral part of the `litterbox` application. No separate deployment artifacts are required.
-*   A configurable range for dynamic host port allocation will be introduced, either as a global `litterbox` setting or as an environment variable for the `litterbox` process itself.
+*   The default host port range is 3000-8000; making this configurable is a future consideration.
 *   Robust logging will be implemented for port allocation, conflicts, and environment variable injection to aid in debugging and monitoring. Existing `litterbox` logging mechanisms will be utilized.
-*   Backward compatibility for existing `.litterbox.toml` files will be maintained; the `[port-forwarding]` section will be optional and ignored if not present.
+*   Backward compatibility for existing `.litterbox.toml` files will be maintained; the `[[ports]]` section is optional and ignored if not present.

@@ -114,7 +114,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 
 ## 5. Documentation and Future Considerations
 
-### [ ] Task 5.1: Update Documentation
+### [x] Task 5.1: Update Documentation
 
 **Description**: Update relevant user-facing and developer documentation to reflect the new port forwarding configuration options and usage.
 **Success Criteria**: Documentation is clear, accurate, and complete.
