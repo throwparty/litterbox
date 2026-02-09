@@ -155,6 +155,8 @@ pub enum ComputeError {
     ImagePull { #[source] source: bollard::errors::Error },
     #[error("Docker container provisioning failed: {source}")]
     ContainerProvision { #[source] source: bollard::errors::Error },
+    #[error("Docker container inspection failed: {source}")]
+    ContainerInspect { #[source] source: bollard::errors::Error },
     #[error("Docker pause failed: {source}")]
     ContainerPause { #[source] source: bollard::errors::Error },
     #[error("Docker resume failed: {source}")]

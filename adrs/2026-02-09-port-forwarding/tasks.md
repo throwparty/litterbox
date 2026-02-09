@@ -89,7 +89,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Integration tests to verify the `sandbox-create` command's output includes the correct forwarding port mappings and environment variables.
 **References**: `spec.md` (Functional Requirement 6), `plan.md` (Section 3.4)
 
-### [ ] Task 3.2: Add `sandbox-ports` Tool
+### [x] Task 3.2: Add `sandbox-ports` Tool
 
 **Description**: Add a new MCP tool `sandbox-ports` that returns forwarded port mappings for a named sandbox. It should inspect the container to derive `forwarded_ports` and return a structured response (name + mappings). Return a clear error if the sandbox is missing.
 **Success Criteria**: `sandbox-ports` returns accurate forwarded port mappings for an existing sandbox and a clear error for unknown sandbox.

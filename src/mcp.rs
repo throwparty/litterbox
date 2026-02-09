@@ -8,7 +8,8 @@ use rmcp::{
     transport::stdio,
 };
 use schemars::JsonSchema;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::Path;
 use tempfile;
 
@@ -21,11 +22,11 @@ use std::io;
 #[cfg(test)]
 use std::path::PathBuf;
 
-use crate::compute::DockerCompute;
+use crate::compute::{ContainerInspection, DockerCompute};
 use crate::config_loader;
 use crate::domain::{
-    ComputeError, ExecutionResult, ForwardedPort, SandboxConfig, SandboxError, SandboxMetadata,
-    SandboxStatus, slugify_name,
+    ComputeError, ExecutionResult, ForwardedPort, ForwardedPortMapping, SandboxConfig,
+    SandboxError, SandboxMetadata, SandboxStatus, slugify_name,
 };
 use crate::sandbox::{
     DockerSandboxProvider, SandboxProvider, branch_name_for_slug, container_name_for_slug,
@@ -136,6 +137,30 @@ impl SandboxServer {
             .await
             .map_err(map_error)?;
         let content = Content::json(metadata)
+            .map_err(|error| McpError::internal_error(error.to_string(), None))?;
+        Ok(CallToolResult::success(vec![content]))
+    }
+
+    #[tool(
+        name = "sandbox-ports",
+        description = "Get forwarded ports for a sandbox"
+    )]
+    async fn sandbox_ports(
+        &self,
+        Parameters(args): Parameters<SandboxPortsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let provider = build_provider().map_err(map_error)?;
+        let metadata = resolve_sandbox_metadata(&args.sandbox).map_err(map_error)?;
+        let inspection = provider
+            .inspect_container(&metadata.container_id)
+            .await
+            .map_err(|error| map_sandbox_error(&args.sandbox, error))?;
+        let forwarded_ports = forwarded_ports_from_inspection(&inspection);
+        let response = SandboxPortsResponse {
+            name: args.sandbox,
+            forwarded_ports,
+        };
+        let content = Content::json(response)
             .map_err(|error| McpError::internal_error(error.to_string(), None))?;
         Ok(CallToolResult::success(vec![content]))
     }
@@ -355,7 +380,79 @@ fn is_container_missing(error: &SandboxError) -> bool {
                 ..
             }
         })
+            | SandboxError::Compute(ComputeError::ContainerInspect {
+                source: bollard::errors::Error::DockerResponseServerError {
+                    status_code: 404,
+                    ..
+                }
+            })
     )
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct SandboxPortsArgs {
+    pub sandbox: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SandboxPortsResponse {
+    pub name: String,
+    pub forwarded_ports: Vec<ForwardedPortMapping>,
+}
+
+fn forwarded_ports_from_inspection(inspection: &ContainerInspection) -> Vec<ForwardedPortMapping> {
+    let mut env_map: HashMap<u16, String> = HashMap::new();
+    for entry in &inspection.env {
+        if let Some((key, value)) = entry.split_once('=') {
+            if key.starts_with("LITTERBOX_FWD_PORT_") {
+                if let Ok(port) = value.parse::<u16>() {
+                    env_map.insert(port, key.to_string());
+                }
+            }
+        }
+    }
+
+    let mut mappings = Vec::new();
+    for (container_port, bindings) in &inspection.port_bindings {
+        let target = container_port
+            .split('/')
+            .next()
+            .and_then(|value| value.parse::<u16>().ok());
+        let target = match target {
+            Some(target) => target,
+            None => continue,
+        };
+
+        for binding in bindings {
+            let host_port = binding
+                .host_port
+                .as_ref()
+                .and_then(|value| value.parse::<u16>().ok());
+            let host_port = match host_port {
+                Some(host_port) => host_port,
+                None => continue,
+            };
+
+            let env_var = match env_map.get(&host_port) {
+                Some(env) => env.clone(),
+                None => continue,
+            };
+            let name = env_var
+                .strip_prefix("LITTERBOX_FWD_PORT_")
+                .unwrap_or("")
+                .to_ascii_lowercase()
+                .replace('_', "-");
+
+            mappings.push(ForwardedPortMapping {
+                name,
+                target,
+                host_port,
+                env_var,
+            });
+        }
+    }
+
+    mappings
 }
 
 #[derive(Debug)]
@@ -1107,6 +1204,7 @@ fn parse_grep_output(output: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compute::{ContainerInspection, PortBindingSpec};
     use futures_util::future::BoxFuture;
     use git2::{ErrorCode, Oid, Repository, Signature};
     use std::fs;
@@ -1128,6 +1226,28 @@ mod tests {
                 committed_messages: Mutex::new(Vec::new()),
             }
         }
+    }
+
+    #[test]
+    fn forwarded_ports_from_inspection_builds_mapping() {
+        let inspection = ContainerInspection {
+            env: vec!["LITTERBOX_FWD_PORT_WEB=3001".to_string()],
+            port_bindings: HashMap::from([(
+                "8080/tcp".to_string(),
+                vec![PortBindingSpec {
+                    host_ip: Some("0.0.0.0".to_string()),
+                    host_port: Some("3001".to_string()),
+                }],
+            )]),
+        };
+
+        let mappings = forwarded_ports_from_inspection(&inspection);
+
+        assert_eq!(mappings.len(), 1);
+        assert_eq!(mappings[0].name, "web");
+        assert_eq!(mappings[0].target, 8080);
+        assert_eq!(mappings[0].host_port, 3001);
+        assert_eq!(mappings[0].env_var, "LITTERBOX_FWD_PORT_WEB");
     }
 
     impl Scm for TestScm {
@@ -1215,7 +1335,7 @@ mod tests {
         }
     }
 
-    impl SandboxProvider for MultiResultProvider {
+impl SandboxProvider for MultiResultProvider {
         fn create<'a>(
             &'a self,
             _name: &'a str,
@@ -1228,13 +1348,24 @@ mod tests {
             })
         }
 
-        fn pause<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
-            Box::pin(async move {
-                Err(SandboxError::SandboxNotFound {
-                    name: "unused".to_string(),
-                })
+    fn pause<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
+        Box::pin(async move {
+            Err(SandboxError::SandboxNotFound {
+                name: "unused".to_string(),
             })
-        }
+        })
+    }
+
+    fn inspect_container<'a>(
+        &'a self,
+        _container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>> {
+        Box::pin(async move {
+            Err(SandboxError::SandboxNotFound {
+                name: "unused".to_string(),
+            })
+        })
+    }
 
         fn resume<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
             Box::pin(async move {
@@ -1299,7 +1430,7 @@ mod tests {
         }
     }
 
-    impl SandboxProvider for TestProvider {
+impl SandboxProvider for TestProvider {
         fn create<'a>(
             &'a self,
             _name: &'a str,
@@ -1312,13 +1443,24 @@ mod tests {
             })
         }
 
-        fn pause<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
-            Box::pin(async move {
-                Err(SandboxError::SandboxNotFound {
-                    name: "unused".to_string(),
-                })
+    fn pause<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
+        Box::pin(async move {
+            Err(SandboxError::SandboxNotFound {
+                name: "unused".to_string(),
             })
-        }
+        })
+    }
+
+    fn inspect_container<'a>(
+        &'a self,
+        _container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>> {
+        Box::pin(async move {
+            Err(SandboxError::SandboxNotFound {
+                name: "unused".to_string(),
+            })
+        })
+    }
 
         fn resume<'a>(&'a self, _container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {
             Box::pin(async move {

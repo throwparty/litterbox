@@ -30,6 +30,10 @@ pub trait Compute {
         &'a self,
         spec: &'a ContainerSpec,
     ) -> BoxFuture<'a, Result<String, SandboxError>>;
+    fn inspect_container<'a>(
+        &'a self,
+        container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>>;
     fn pause_container<'a>(&'a self, container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>>;
     fn resume_container<'a>(&'a self, container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>>;
     fn delete_container<'a>(&'a self, container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>>;
@@ -63,6 +67,18 @@ pub struct ContainerSpec {
     pub working_dir: Option<String>,
     pub env: Vec<String>,
     pub port_bindings: HashMap<String, Vec<PortBinding>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PortBindingSpec {
+    pub host_ip: Option<String>,
+    pub host_port: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ContainerInspection {
+    pub env: Vec<String>,
+    pub port_bindings: HashMap<String, Vec<PortBindingSpec>>,
 }
 
 pub struct DockerCompute {
@@ -159,6 +175,40 @@ impl DockerCompute {
             .map_err(|source| SandboxError::Compute(ComputeError::ContainerProvision { source }))?;
 
         Ok(response.id)
+    }
+
+    pub async fn inspect_container(
+        &self,
+        container_id: &str,
+    ) -> Result<ContainerInspection, SandboxError> {
+        let inspect = self
+            .client
+            .inspect_container(container_id, None)
+            .await
+            .map_err(|source| SandboxError::Compute(ComputeError::ContainerInspect { source }))?;
+        let env = inspect
+            .config
+            .and_then(|config| config.env)
+            .unwrap_or_default();
+        let port_bindings = inspect
+            .host_config
+            .and_then(|config| config.port_bindings)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(key, bindings)| {
+                let bindings = bindings
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|binding| PortBindingSpec {
+                        host_ip: binding.host_ip,
+                        host_port: binding.host_port,
+                    })
+                    .collect();
+                (key, bindings)
+            })
+            .collect();
+
+        Ok(ContainerInspection { env, port_bindings })
     }
 
     pub async fn pause_container(&self, container_id: &str) -> Result<(), SandboxError> {
@@ -376,6 +426,13 @@ impl Compute for DockerCompute {
         spec: &'a ContainerSpec,
     ) -> BoxFuture<'a, Result<String, SandboxError>> {
         Box::pin(async move { DockerCompute::create_container(self, spec).await })
+    }
+
+    fn inspect_container<'a>(
+        &'a self,
+        container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>> {
+        Box::pin(async move { DockerCompute::inspect_container(self, container_id).await })
     }
 
     fn pause_container<'a>(&'a self, container_id: &'a str) -> BoxFuture<'a, Result<(), SandboxError>> {

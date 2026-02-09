@@ -9,7 +9,7 @@ use tar::Archive;
 use tempfile::TempDir;
 use tokio::time::sleep;
 
-use crate::compute::{Compute, ContainerSpec};
+use crate::compute::{Compute, ContainerInspection, ContainerSpec};
 use crate::domain::{
     slugify_name,
     ComputeError,
@@ -34,6 +34,10 @@ pub trait SandboxProvider {
         name: &'a str,
         config: &'a SandboxConfig,
     ) -> BoxFuture<'a, Result<SandboxMetadata, SandboxError>>;
+    fn inspect_container<'a>(
+        &'a self,
+        container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>>;
     fn pause<'a>(&'a self, container_id: &'a str)
         -> BoxFuture<'a, Result<(), SandboxError>>;
     fn resume<'a>(&'a self, container_id: &'a str)
@@ -190,6 +194,13 @@ where
         container_id: &'a str,
     ) -> BoxFuture<'a, Result<(), SandboxError>> {
         Box::pin(async move { self.compute.pause_container(container_id).await })
+    }
+
+    fn inspect_container<'a>(
+        &'a self,
+        container_id: &'a str,
+    ) -> BoxFuture<'a, Result<ContainerInspection, SandboxError>> {
+        Box::pin(async move { self.compute.inspect_container(container_id).await })
     }
 
     fn resume<'a>(
