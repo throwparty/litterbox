@@ -48,6 +48,7 @@ This document captures design ideas, alternative approaches considered, and rati
 - Parallel agent work without port conflicts
 - Configuration stays simple (no need to manually assign port ranges)
 - Services read port from env var, remain portable
+- Future: allow configuring the host port range instead of the default
 
 ## Commit on Every Write/Exec
 
