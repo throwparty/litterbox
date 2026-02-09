@@ -105,6 +105,7 @@ impl GitScm {
         }
     }
 
+    #[allow(unused)]
     fn index_has_changes(&self, index: &mut git2::Index) -> Result<bool, SandboxError> {
         let tree_id = index
             .write_tree()

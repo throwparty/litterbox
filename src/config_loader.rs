@@ -1,7 +1,9 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
-use crate::config::{Config, ConfigError};
+use crate::config::{Config, ConfigError, PortsConfig};
+use crate::domain::slugify_name;
 
 /// Loads and parses a single TOML configuration file into a Config struct.
 pub fn load_file(path: &Path) -> Result<Config, ConfigError> {
@@ -21,6 +23,13 @@ pub fn merge(base: Config, local: Config) -> Config {
         docker: crate::config::DockerConfig {
             image: local.docker.image.or(base.docker.image),
             setup_command: local.docker.setup_command.or(base.docker.setup_command),
+        },
+        ports: PortsConfig {
+            ports: if local.ports.ports.is_empty() {
+                base.ports.ports
+            } else {
+                local.ports.ports
+            },
         },
     }
 }
@@ -43,6 +52,7 @@ fn default_config() -> Config {
             image: None,
             setup_command: None,
         },
+        ports: PortsConfig::default(),
     }
 }
 
@@ -67,6 +77,7 @@ pub fn load_final() -> Result<Config, ConfigError> {
                 image: None,
                 setup_command: None,
             },
+            ports: PortsConfig::default(),
         }
     };
 
@@ -81,5 +92,100 @@ pub fn load_final() -> Result<Config, ConfigError> {
         return Err(ConfigError::MissingRequiredKey("docker.setup-command".to_string()));
     }
 
+    validate_ports(&merged)?;
+
     Ok(merged)
+}
+
+fn validate_ports(config: &Config) -> Result<(), ConfigError> {
+    let mut seen = HashSet::new();
+
+    for port in &config.ports.ports {
+        if port.target == 0 {
+            return Err(ConfigError::ParseError(format!(
+                "Invalid forwarded port target: {}",
+                port.target
+            )));
+        }
+        let slug = slugify_name(&port.name).map_err(|err| ConfigError::ParseError(err.to_string()))?;
+        if !seen.insert(slug.clone()) {
+            return Err(ConfigError::ParseError(format!(
+                "Duplicate forwarded port name after slugify: '{slug}'"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_ports;
+    use crate::config::{Config, DockerConfig, PortsConfig, ProjectConfig, ForwardedPort};
+
+    fn base_config(ports: Vec<ForwardedPort>) -> Config {
+        Config {
+            project: ProjectConfig { slug: None },
+            docker: DockerConfig {
+                image: Some("image".to_string()),
+                setup_command: Some("setup".to_string()),
+            },
+            ports: PortsConfig { ports },
+        }
+    }
+
+    #[test]
+    fn validate_ports_allows_unique_slugs() {
+        let config = base_config(vec![
+            ForwardedPort {
+                name: "Backend".to_string(),
+                target: 8080,
+            },
+            ForwardedPort {
+                name: "Frontend".to_string(),
+                target: 8081,
+            },
+        ]);
+
+        validate_ports(&config).expect("ports validate");
+    }
+
+    #[test]
+    fn validate_ports_rejects_duplicate_slugs() {
+        let config = base_config(vec![
+            ForwardedPort {
+                name: "My Service".to_string(),
+                target: 8080,
+            },
+            ForwardedPort {
+                name: "my-service".to_string(),
+                target: 8081,
+            },
+        ]);
+
+        let err = validate_ports(&config).expect_err("duplicate slug rejected");
+        assert!(err.to_string().contains("Duplicate forwarded port name"));
+    }
+
+    #[test]
+    fn validate_ports_rejects_invalid_names() {
+        let config = base_config(vec![ForwardedPort {
+            name: "----".to_string(),
+            target: 8080,
+        }]);
+
+        let err = validate_ports(&config).expect_err("invalid slug rejected");
+        assert!(err.to_string().contains("Invalid sandbox name"));
+    }
+
+    #[test]
+    fn validate_ports_rejects_invalid_targets() {
+        let config = base_config(vec![ForwardedPort {
+            name: "backend".to_string(),
+            target: 0,
+        }]);
+
+        let err = validate_ports(&config).expect_err("invalid target rejected");
+        assert!(err.to_string().contains("Invalid forwarded port target"));
+    }
 }

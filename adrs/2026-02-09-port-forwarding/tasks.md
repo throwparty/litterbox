@@ -4,21 +4,21 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 
 ## 1. Configuration Module (`src/config.rs`, `src/config_loader.rs`)
 
-### [ ] Task 1.1: Define `ForwardedPort` and `PortsConfig` Structs
+### [x] Task 1.1: Define `ForwardedPort` and `PortsConfig` Structs
 
 **Description**: Define the `ForwardedPort` struct (containing `name: String` and `target: u16`) and the `PortsConfig` struct (containing `ports: Vec<ForwardedPort>`) in `src/config.rs`.
 **Success Criteria**: New structs are defined and compile without errors.
 **Test Requirements**: Unit tests for struct instantiation and field access.
 **References**: `spec.md` (Functional Requirements 3, 4, 5), `plan.md` (Section 3.1)
 
-### [ ] Task 1.2: Extend Main `Config` Struct
+### [x] Task 1.2: Extend Main `Config` Struct
 
 **Description**: Add a `ports: Option<PortsConfig>` field to the main `Config` struct in `src/config.rs`.
 **Success Criteria**: `Config` struct updated and compiles. The `ports` field is optional.
 **Test Requirements**: Unit tests to ensure `Config` can be deserialized with and without the `ports` field.
 **References**: `plan.md` (Section 3.1)
 
-### [ ] Task 1.3: Update `config_loader` for Port Configuration Parsing
+### [x] Task 1.3: Update `config_loader` for Port Configuration Parsing
 
 **Description**: Modify `src/config_loader.rs` to parse the `[[ports]]` table from `.litterbox.toml` and `.litterbox.local.toml` into the `PortsConfig` struct. This includes slugifying the `name` field for environment variable generation and detecting conflicts in slugified names.
 **Success Criteria**: `config_loader` successfully parses valid port configurations and reports errors for invalid ones (e.g., duplicate slugified names, invalid port numbers).
