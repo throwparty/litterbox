@@ -24,8 +24,8 @@ use std::path::PathBuf;
 use crate::compute::DockerCompute;
 use crate::config_loader;
 use crate::domain::{
-    ComputeError, ExecutionResult, SandboxConfig, SandboxError, SandboxMetadata, SandboxStatus,
-    slugify_name,
+    ComputeError, ExecutionResult, ForwardedPort, SandboxConfig, SandboxError, SandboxMetadata,
+    SandboxStatus, slugify_name,
 };
 use crate::sandbox::{
     DockerSandboxProvider, SandboxProvider, branch_name_for_slug, container_name_for_slug,
@@ -116,10 +116,20 @@ impl SandboxServer {
             config.docker.image.clone().ok_or_else(|| {
                 McpError::internal_error("missing docker.image".to_string(), None)
             })?;
+        let forwarded_ports = config
+            .ports
+            .ports
+            .iter()
+            .map(|port| ForwardedPort {
+                name: port.name.clone(),
+                target: port.target,
+            })
+            .collect();
         let provider = build_provider_with_config(&config).map_err(map_error)?;
         let sandbox_config = SandboxConfig {
             image,
             setup_command: config.docker.setup_command.clone(),
+            forwarded_ports,
         };
         let metadata = provider
             .create(&args.name, &sandbox_config)
@@ -332,6 +342,7 @@ fn resolve_sandbox_metadata(name: &str) -> Result<SandboxMetadata, SandboxError>
         branch_name: branch_name_for_slug(&slug),
         container_id: container_name_for_slug(&repo_prefix, &slug),
         status: SandboxStatus::Active,
+        forwarded_ports: Vec::new(),
     })
 }
 
@@ -1384,6 +1395,7 @@ mod tests {
             branch_name: "litterbox/sandbox".to_string(),
             container_id: "container".to_string(),
             status: SandboxStatus::Active,
+            forwarded_ports: Vec::new(),
         }
     }
 

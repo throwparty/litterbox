@@ -108,6 +108,8 @@ where
                 image: config.image.clone(),
                 command: vec!["sh".to_string(), "-c".to_string(), "tail -f /dev/null".to_string()],
                 working_dir: Some(DEFAULT_WORKDIR.to_string()),
+                env: Vec::new(),
+                port_bindings: std::collections::HashMap::new(),
             };
 
             let container_id = match self.compute.create_container(&spec).await {
@@ -166,6 +168,7 @@ where
                 branch_name,
                 container_id,
                 status: SandboxStatus::Active,
+                forwarded_ports: Vec::new(),
             })
         })
     }
@@ -319,6 +322,7 @@ mod tests {
                 &SandboxConfig {
                     image: "busybox:latest".to_string(),
                     setup_command: None,
+                    forwarded_ports: Vec::new(),
                 },
             )
             .await?;
@@ -363,6 +367,7 @@ mod tests {
                 &SandboxConfig {
                     image: "busybox:latest".to_string(),
                     setup_command: None,
+                    forwarded_ports: Vec::new(),
                 },
             )
             .await?;
@@ -413,6 +418,7 @@ mod tests {
                 &SandboxConfig {
                     image: "busybox:latest".to_string(),
                     setup_command: None,
+                    forwarded_ports: Vec::new(),
                 },
             )
             .await?;

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
@@ -5,7 +6,7 @@ use std::process::Command;
 
 use bollard::container::LogOutput;
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
-use bollard::models::ContainerCreateBody;
+use bollard::models::{ContainerCreateBody, HostConfig, PortBinding};
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder,
     CreateImageOptions,
@@ -60,6 +61,8 @@ pub struct ContainerSpec {
     pub image: String,
     pub command: Vec<String>,
     pub working_dir: Option<String>,
+    pub env: Vec<String>,
+    pub port_bindings: HashMap<String, Vec<PortBinding>>,
 }
 
 pub struct DockerCompute {
@@ -113,6 +116,21 @@ impl DockerCompute {
                 .name(&spec.name)
                 .build(),
         );
+        let env = if spec.env.is_empty() {
+            None
+        } else {
+            Some(spec.env.clone())
+        };
+        let port_bindings = if spec.port_bindings.is_empty() {
+            None
+        } else {
+            Some(
+                spec.port_bindings
+                    .iter()
+                    .map(|(key, bindings)| (key.clone(), Some(bindings.clone())))
+                    .collect(),
+            )
+        };
         let config = ContainerCreateBody {
             image: Some(spec.image.clone()),
             cmd: if spec.command.is_empty() {
@@ -121,6 +139,11 @@ impl DockerCompute {
                 Some(spec.command.clone())
             },
             working_dir: spec.working_dir.clone(),
+            env,
+            host_config: Some(HostConfig {
+                port_bindings,
+                ..Default::default()
+            }),
             ..Default::default()
         };
 

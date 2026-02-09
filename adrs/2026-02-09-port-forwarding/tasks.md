@@ -31,7 +31,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 
 ## 2. Sandbox Module (`src/domain.rs`, `src/sandbox/mod.rs`, `src/compute/mod.rs`)
 
-### [ ] Task 2.1: Extend `SandboxConfig` and `SandboxMetadata`
+### [x] Task 2.1: Extend `SandboxConfig` and `SandboxMetadata`
 
 **Description**:
     *   Extend `SandboxConfig` (defined in `src/domain.rs`) to include the parsed `PortsConfig`.
@@ -40,9 +40,9 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Unit tests for instantiation and field access of updated structs.
 **References**: `plan.md` (Section 3.2)
 
-### [ ] Task 2.2: Extend `ContainerSpec`
+### [x] Task 2.2: Extend `ContainerSpec`
 
-**Description**: In `src/compute/mod.rs`, modify the `ContainerSpec` struct to include `pub env: Option<HashMap<String, String>>` for environment variables and `pub port_bindings: Option<HashMap<String, Vec<bollard::models::PortBinding>>>` for port forwarding.
+**Description**: In `src/compute/mod.rs`, modify the `ContainerSpec` struct to include `pub env: Vec<String>` for environment variables and `pub port_bindings: HashMap<String, Vec<bollard::models::PortBinding>>` for port forwarding.
 **Success Criteria**: `ContainerSpec` is updated and compiles.
 **Test Requirements**: Unit tests for `ContainerSpec` instantiation with and without the new fields.
 **References**: `plan.md` (Section 3.3)

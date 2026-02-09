@@ -424,6 +424,7 @@ fn metadata_for_slug(repo_prefix: &str, slug: &str, status: SandboxStatus) -> Sa
         branch_name: branch_name_for_slug(slug),
         container_id: container_name_for_slug(repo_prefix, slug),
         status,
+        forwarded_ports: Vec::new(),
     }
 }
 

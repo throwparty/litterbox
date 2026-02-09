@@ -7,6 +7,21 @@ use thiserror::Error;
 pub struct SandboxConfig {
     pub image: String,
     pub setup_command: Option<String>,
+    pub forwarded_ports: Vec<ForwardedPort>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ForwardedPort {
+    pub name: String,
+    pub target: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ForwardedPortMapping {
+    pub name: String,
+    pub target: u16,
+    pub host_port: u16,
+    pub env_var: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -29,6 +44,7 @@ pub struct SandboxMetadata {
     pub branch_name: String,
     pub container_id: String,
     pub status: SandboxStatus,
+    pub forwarded_ports: Vec<ForwardedPortMapping>,
 }
 
 impl fmt::Display for SandboxConfig {
@@ -37,7 +53,9 @@ impl fmt::Display for SandboxConfig {
             Some(command) if command.is_empty() => write!(f, "setup_command=<empty>"),
             Some(command) => write!(f, "setup_command={command}"),
             None => write!(f, "setup_command=<none>"),
-        }
+        }?;
+
+        write!(f, ", forwarded_ports={}", self.forwarded_ports.len())
     }
 }
 
@@ -65,8 +83,12 @@ impl fmt::Display for SandboxMetadata {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "name={}, branch={}, container={}, status={}",
-            self.name, self.branch_name, self.container_id, self.status
+            "name={}, branch={}, container={}, status={}, forwarded_ports={}",
+            self.name,
+            self.branch_name,
+            self.container_id,
+            self.status,
+            self.forwarded_ports.len()
         )
     }
 }
