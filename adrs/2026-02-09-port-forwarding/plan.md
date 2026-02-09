@@ -90,6 +90,19 @@ The `sandbox-create` handler within `src/mcp.rs` will:
 *   Call `provider.create()` which now returns an enriched `SandboxMetadata`.
 *   Serialize this `SandboxMetadata` (including the new `forwarded_ports` field) as JSON in its response to the client.
 
+### 3.5. `sandbox-ports` Tool (`src/mcp.rs`, `src/sandbox/mod.rs`)
+
+Add a new MCP tool `sandbox-ports` to return forwarded port mappings for an existing sandbox by name.
+
+*   **Input**: `name` (sandbox name, same as `sandbox-create` name).
+*   **Lookup**:
+    *   Resolve the sandbox container name using existing helpers (`slugify_name`, repo prefix, and container naming convention).
+    *   Add a compute abstraction for container inspection (e.g., `Compute::inspect_container`) that returns an implementation-agnostic view of env vars and forwarded ports.
+    *   The Docker implementation will source this from `inspect_container`, but MCP will only depend on the compute abstraction.
+    *   Derive `ForwardedPortMapping` entries from the abstraction: read `LITTERBOX_FWD_PORT_*` env vars and port bindings from the inspected container.
+*   **Output**: `SandboxPortsResponse` with `name` and `forwarded_ports`.
+*   **Errors**: Return a clear error if the sandbox does not exist.
+
 ## 4. Data Flow Diagrams
 
 (The existing data flow diagrams will be updated to reflect the new component interactions, specifically showing the `config_loader` processing the `ports` configuration and the `DockerSandboxProvider` handling port forwarding configuration, environment variable injection, and `ContainerSpec` modification before calling `DockerCompute::create_container`.)
@@ -151,6 +164,8 @@ graph TD
     *   Verify end-to-end sandbox creation using `sandbox-create` with a `.litterbox.toml` specifying port forwarding.
     *   Assert that Docker containers are created with correct `PortBindings` and `Env` variables.
     *   Verify that the `sandbox-create` tool's JSON response contains accurate `forwarded_ports` and `environment_variables`.
+    *   Verify that `sandbox-ports` returns the same forwarded port mappings as `sandbox-create` for a running sandbox.
+    *   Verify `sandbox-ports` returns a clear error when the sandbox is missing.
     *   Test scenarios with multiple sandboxes, ensuring no host port conflicts between them.
     *   Test behavior with invalid `litterbox.toml` configurations (e.g., missing `name`, non-numeric port).
     *   Test that applications inside the container can correctly read the injected environment variables.

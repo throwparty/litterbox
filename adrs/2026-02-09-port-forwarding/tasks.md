@@ -89,6 +89,13 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Integration tests to verify the `sandbox-create` command's output includes the correct forwarding port mappings and environment variables.
 **References**: `spec.md` (Functional Requirement 6), `plan.md` (Section 3.4)
 
+### [ ] Task 3.2: Add `sandbox-ports` Tool
+
+**Description**: Add a new MCP tool `sandbox-ports` that returns forwarded port mappings for a named sandbox. It should inspect the container to derive `forwarded_ports` and return a structured response (name + mappings). Return a clear error if the sandbox is missing.
+**Success Criteria**: `sandbox-ports` returns accurate forwarded port mappings for an existing sandbox and a clear error for unknown sandbox.
+**Test Requirements**: Integration tests for successful lookup and missing sandbox error.
+**References**: `spec.md` (FR8, AC8, EC4), `plan.md` (Section 3.5)
+
 ## 4. Testing and Error Handling
 
 ### [x] Task 4.1: End-to-End Integration Tests
@@ -105,7 +112,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Unit and integration tests for all edge cases mentioned in `spec.md` and `plan.md`.
 **References**: `spec.md` (Edge Cases), `plan.md` (Section 5)
 
-### [ ] Task 4.3: Error Handling Implementation and Testing
+### [x] Task 4.3: Error Handling Implementation and Testing
 
 **Description**: Implement robust error handling throughout the port forwarding mechanism. Ensure that `bollard`-specific errors propagate up, and the retry mechanism for port allocation failures is correctly implemented and tested.
 **Success Criteria**: The system gracefully handles errors, provides informative messages, and the retry mechanism for port allocation works as expected.

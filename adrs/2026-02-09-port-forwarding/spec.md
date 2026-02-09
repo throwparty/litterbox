@@ -31,6 +31,11 @@ decision: pending
 1. Developer lists active sandboxes and their associated port mappings.
 2. Developer connects to a service in a running sandbox using the previously assigned host port.
 
+### User Journey 4: Retrieving forwarded ports after creation context is gone
+
+1. Developer asks for the forwarded ports of a running sandbox after losing the original `sandbox-create` response.
+2. The system returns the forwarded port mappings for that sandbox on demand.
+
 ### User Journey 3: Handling port conflicts
 
 1. Developer attempts to start a sandbox, but a requested host port is already in use.
@@ -47,6 +52,7 @@ decision: pending
 - FR5: Connection Establishment: The system SHALL configure the sandboxing mechanism to forward the assigned host ports to the corresponding container ports.
 - FR6: Environment Variable Exposure: The system SHALL expose the randomly assigned host port numbers as environment variables within the container for each forwarded port.
 - FR7: `sandbox-create` Tool Response: The `sandbox-create` tool SHALL include a mapping of configured container ports to their assigned host ports in its response.
+- FR8: `sandbox-ports` Tool: The system SHALL expose a `sandbox-ports` tool that returns forwarded port mappings for a named sandbox.
 
 ## 4. Non-Functional Requirements
 
@@ -64,12 +70,15 @@ decision: pending
 - AC5: The port assignment logic correctly identifies and utilizes unused ports within the default range 3000-8000.
 - AC6: When a container is started, environment variables are present with the forwarded host port for each configured container port (e.g., `LITTERBOX_FWD_PORT_SERVICE_A=32768`).
 - AC7: The `sandbox-create` tool returns a clear mapping of container ports to host ports upon successful sandbox creation.
+- AC8: The `sandbox-ports` tool returns the same forwarded port mappings for a sandbox as originally returned by `sandbox-create`.
 
 ## 6. Edge Cases and Error Handling
 
 - EC1: No available host ports: If the system cannot find an unused host port within the default range 3000-8000, it SHALL inform the user and suggest actions (e.g., free up ports).
 - EC2: Invalid container port: If a user specifies a non-numeric, out-of-range, or zero container port, the system SHALL reject the request with an appropriate error message.
 - EC3: Sandbox termination: When a sandbox is terminated, its assigned host ports SHALL be released and made available for other sandboxes.
+
+- EC4: Unknown sandbox: If a user requests port mappings for a sandbox that does not exist, the system SHALL return a clear error.
 
 - EC5: Long-running services: Port forwarding SHALL remain active and stable for long-running services within the sandbox.
 
