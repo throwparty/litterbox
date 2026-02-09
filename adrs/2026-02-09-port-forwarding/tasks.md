@@ -47,7 +47,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Unit tests for `ContainerSpec` instantiation with and without the new fields.
 **References**: `plan.md` (Section 3.3)
 
-### [ ] Task 2.3: Implement Dynamic Port Allocation and Env Var Generation
+### [x] Task 2.3: Implement Dynamic Port Allocation and Env Var Generation
 
 **Description**: Implement the logic within `DockerSandboxProvider::create` in `src/sandbox/mod.rs` to:
     *   Access the `PortsConfig` from `SandboxConfig`.
@@ -61,7 +61,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
     *   Unit tests for the retry mechanism in port allocation.
 **References**: `spec.md` (Functional Requirements 1, 5), `plan.md` (Section 3.2)
 
-### [ ] Task 2.4: Modify `DockerCompute::create_container` for Port Bindings and Env Vars
+### [x] Task 2.4: Modify `DockerCompute::create_container` for Port Bindings and Env Vars
 
 **Description**: Update `DockerCompute::create_container` in `src/compute/mod.rs` to:
     *   Accept the extended `ContainerSpec`.
@@ -73,7 +73,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
     *   Note: `bollard`-specific errors during container creation are expected to propagate up the call stack for handling by `DockerSandboxProvider`.
 **References**: `spec.md` (Functional Requirements 2, 5), `plan.md` (Section 3.3)
 
-### [ ] Task 2.5: Populate `SandboxMetadata`
+### [x] Task 2.5: Populate `SandboxMetadata`
 
 **Description**: Populate the `SandboxMetadata` with the generated host port forwarding information (container port, host port, slugified name) before returning it from `DockerSandboxProvider::create`.
 **Success Criteria**: `SandboxMetadata` contains accurate port forwarding data.
@@ -82,7 +82,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 
 ## 3. Model Control Protocol Module (`src/mcp.rs`)
 
-### [ ] Task 3.1: Update `sandbox-create` Tool Response
+### [x] Task 3.1: Update `sandbox-create` Tool Response
 
 **Description**: Modify the `sandbox_create` tool in `src/mcp.rs` to return the enriched `SandboxMetadata` (which now includes forwarded port information) back to the client.
 **Success Criteria**: The `sandbox-create` tool's response contains the complete forwarding port mappings.
@@ -91,14 +91,14 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 
 ## 4. Testing and Error Handling
 
-### [ ] Task 4.1: End-to-End Integration Tests
+### [x] Task 4.1: End-to-End Integration Tests
 
 **Description**: Develop comprehensive integration tests that cover the entire flow from configuration parsing to sandbox creation and verification of forwarded ports and environment variables.
 **Success Criteria**: All integration tests pass, demonstrating end-to-end functionality.
 **Test Requirements**: Test scenarios with multiple sandboxes, various port configurations, and invalid inputs.
 **References**: `plan.md` (Section 5)
 
-### [ ] Task 4.2: Edge Cases and Validation Tests
+### [x] Task 4.2: Edge Cases and Validation Tests
 
 **Description**: Implement tests for identified edge cases, such as invalid port configurations, no available host ports (simulated), and duplicate slugified names.
 **Success Criteria**: Edge case tests pass, and error handling mechanisms are triggered correctly.
@@ -121,7 +121,7 @@ This document outlines the implementable tasks for the Port Forwarding feature, 
 **Test Requirements**: Manual review of documentation.
 **References**: N/A
 
-### [ ] Task 5.2: Future Consideration - Customizable Port Range
+### [x] Task 5.2: Future Consideration - Customizable Port Range
 
 **Description**: Document the ability for users to customize the dynamic host port range as a future consideration for the project.
 **Success Criteria**: The future consideration is clearly articulated in the documentation.
