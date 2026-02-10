@@ -43,9 +43,11 @@
               inherit pkgs;
               name = "default";
               commands = ''
-                ${getExe' rustToolchain "cargo"} --version
-                ${getExe cargo-auditable} --version
+                ${getExe openssl} version
                 ${getExe python3} --version
+                ${getExe' rustToolchain "cargo"} --version
+                ${getExe stdenv.cc} --version | head -n 1
+                printf "pkg-config %s\n" "$(${getExe pkg-config} --version | head -n 1)"
                 ${getExe' rustToolchain "rustc"} --version
               '';
             };
@@ -59,7 +61,7 @@
               rustToolchain
               stdenv.cc
             ];
-            shellHook = "\n cat ${toolVersions}";
+            shellHook = "\ncat ${toolVersions}";
           };
       }
     );
