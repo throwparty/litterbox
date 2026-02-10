@@ -93,11 +93,13 @@ This document captures design ideas, alternative approaches considered, and rati
 
 **Format**:
 ```toml
-[container.services.backend]
+[[services]]
+name = "backend"
 command = ["npm", "run", "dev"]
 signals = { stop = "SIGTERM", restart = "SIGHUP" }
 
-[container.services.database]
+[[services]]
+name = "db"
 command = ["postgres", "-D", "/data"]
 signals = { stop = "SIGTERM" }
 ```
