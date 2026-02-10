@@ -10,19 +10,19 @@ Review *outputs*, not *actions*: give your AI agents litter trays to poop into.
 
 ## Configuration
 
-Litterbox uses a three-layer TOML configuration system that merges in order:
+Litterbox uses a three-layer TOML configuration system that merges three layers:
 
 1. **Defaults** - Automatically derived from your environment
 2. **Project configuration** (`.litterbox.toml`) - Committed to your repository
 3. **Local overrides** (`.litterbox.local.toml`) - User-specific settings
 
-### Layer 1: Defaults
+### Layer 1: defaults
 
 Litterbox automatically provides these defaults:
 
 - `project.slug`: Derived from your current directory name (slugified)
 
-### Layer 2: Project Configuration (.litterbox.toml)
+### Layer 2: project configuration (`.litterbox.toml`)
 
 Create a `.litterbox.toml` file in your project root:
 
@@ -35,7 +35,7 @@ image = "ubuntu:latest"
 setup-command = "echo 'Setup complete'"
 ```
 
-### Layer 3: Local Overrides (.litterbox.local.toml)
+### Layer 3: local overrides (`.litterbox.local.toml`)
 
 For local development, create `.litterbox.local.toml`:
 
