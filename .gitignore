@@ -2,6 +2,9 @@
 /.direnv/
 /.envrc
 
+# Goreleaser
+/dist/
+
 # Rust
 /target/
 

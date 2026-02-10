@@ -1,0 +1,40 @@
+name: Pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable
+          rustup default stable
+          rustup component add clippy
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Lint
+        if: "!cancelled()"
+        run: cargo clippy --locked --all-targets --all-features
+      - name: Check
+        if: "!cancelled()"
+        run: cargo check --locked
+      - name: Test
+        if: "!cancelled()"
+        run: cargo test --locked
