@@ -3,6 +3,12 @@ name = "litterbox"
 version = "0.1.0"
 edition = "2024"
 
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+all = "warn"
+
 [dependencies]
 bollard = "0.20.1"
 bytes = "1.7.2"
