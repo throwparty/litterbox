@@ -34,10 +34,13 @@
             inherit (throwparty.devShells.${system}) commonTools;
             inherit (pkgs)
               cargo-auditable
+              cosign
+              goreleaser
               openssl
               pkg-config
               python3
               stdenv
+              syft
               ;
             toolVersions = throwparty.lib.mkToolVersions {
               inherit pkgs;
@@ -47,19 +50,26 @@
                 ${getExe python3} --version
                 ${getExe' rustToolchain "cargo"} --version
                 ${getExe stdenv.cc} --version | head -n 1
+                printf "cosign %s\n" "$(${getExe cosign} version | grep GitVersion | awk '{print $2}')"
+                printf "goreleaser %s\n" "$(${getExe goreleaser} --version | grep GitVersion | awk '{print $2}')"
                 printf "pkg-config %s\n" "$(${getExe pkg-config} --version | head -n 1)"
                 ${getExe' rustToolchain "rustc"} --version
+                ${getExe cosign} --version
+                ${getExe syft} --version
               '';
             };
           in
           pkgs.mkShell {
             nativeBuildInputs = [
               cargo-auditable
+              cosign
+              goreleaser
               openssl
               pkg-config
               python3
               rustToolchain
               stdenv.cc
+              syft
             ];
             shellHook = "\ncat ${toolVersions}";
           };
