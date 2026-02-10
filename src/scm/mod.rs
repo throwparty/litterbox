@@ -113,7 +113,7 @@ impl GitScm {
         if let Some(head) = self.head_commit_optional()? {
             Ok(head.tree_id() != tree_id)
         } else {
-            Ok(index.len() > 0)
+            Ok(!index.is_empty())
         }
     }
 
@@ -319,7 +319,7 @@ impl Scm for GitScm {
 
         Self::append_tree(&self.repo, &mut builder, &tree, Path::new(""))?;
 
-        builder.into_inner().map_err(|e| SandboxError::Io(e.into()))
+        builder.into_inner().map_err(SandboxError::Io)
     }
 
     fn list_sandboxes(&self) -> Result<Vec<String>, SandboxError> {
@@ -332,10 +332,10 @@ impl Scm for GitScm {
         for branch in branches {
             let (branch, _) =
                 branch.map_err(|source| SandboxError::Scm(ScmError::BranchList { source }))?;
-            if let Some(name) = branch.name().ok().flatten() {
-                if let Some(slug) = name.strip_prefix("litterbox/") {
-                    sandboxes.push(slug.to_string());
-                }
+            if let Some(name) = branch.name().ok().flatten()
+                && let Some(slug) = name.strip_prefix("litterbox/")
+            {
+                sandboxes.push(slug.to_string());
             }
         }
 
@@ -418,7 +418,7 @@ impl GitScm {
             .treebuilder(None)
             .map_err(|source| SandboxError::Scm(ScmError::Commit { source }))?;
 
-        self.add_directory_to_tree(&mut builder, staging_path, staging_path)?;
+        self.add_directory_to_tree(&mut builder, staging_path)?;
 
         let tree_oid = builder.write().map_err(|e| {
             // Restore backup on failure
@@ -528,15 +528,14 @@ impl GitScm {
     fn add_directory_to_tree(
         &self,
         builder: &mut git2::TreeBuilder,
-        base_path: &Path,
         current_path: &Path,
     ) -> Result<(), SandboxError> {
         use std::fs;
 
-        let entries = fs::read_dir(current_path).map_err(|e| SandboxError::Io(e))?;
+        let entries = fs::read_dir(current_path).map_err(SandboxError::Io)?;
 
         for entry in entries {
-            let entry = entry.map_err(|e| SandboxError::Io(e))?;
+            let entry = entry.map_err(SandboxError::Io)?;
             let path = entry.path();
             let file_name = entry.file_name();
             let name_str = file_name.to_string_lossy();
@@ -546,7 +545,7 @@ impl GitScm {
                 continue;
             }
 
-            let metadata = entry.metadata().map_err(|e| SandboxError::Io(e))?;
+            let metadata = entry.metadata().map_err(SandboxError::Io)?;
 
             if metadata.is_dir() {
                 let mut sub_builder = self
@@ -554,7 +553,7 @@ impl GitScm {
                     .treebuilder(None)
                     .map_err(|source| SandboxError::Scm(ScmError::Commit { source }))?;
 
-                self.add_directory_to_tree(&mut sub_builder, base_path, &path)?;
+                self.add_directory_to_tree(&mut sub_builder, &path)?;
 
                 let sub_tree_oid = sub_builder
                     .write()
@@ -564,7 +563,7 @@ impl GitScm {
                     .insert(&*name_str, sub_tree_oid, 0o040000)
                     .map_err(|source| SandboxError::Scm(ScmError::Commit { source }))?;
             } else {
-                let content = fs::read(&path).map_err(|e| SandboxError::Io(e))?;
+                let content = fs::read(&path).map_err(SandboxError::Io)?;
 
                 let blob_oid = self
                     .repo

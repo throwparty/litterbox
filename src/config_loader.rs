@@ -41,7 +41,7 @@ fn default_config() -> Config {
         .as_ref()
         .and_then(|dir| dir.file_name())
         .and_then(|name| name.to_str())
-        .map(|name| crate::domain::slugify(name))
+        .map(crate::domain::slugify)
         .filter(|slug| !slug.is_empty());
 
     Config {

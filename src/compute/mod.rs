@@ -497,10 +497,10 @@ fn build_tar(src_path: &Path) -> Result<Vec<u8>, SandboxError> {
 }
 
 fn append_dir(builder: &mut Builder<Vec<u8>>, root: &Path, dir: &Path) -> Result<(), SandboxError> {
-    let mut entries = fs::read_dir(dir)?;
+    let entries = fs::read_dir(dir)?;
     let mut has_entries = false;
 
-    while let Some(entry) = entries.next() {
+    for entry in entries {
         let entry = entry?;
         let path = entry.path();
         let relative = path

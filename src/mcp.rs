@@ -95,6 +95,12 @@ pub struct SandboxServer {
     tool_router: ToolRouter<Self>,
 }
 
+impl Default for SandboxServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[tool_router]
 impl SandboxServer {
     pub fn new() -> Self {
@@ -196,7 +202,7 @@ impl SandboxServer {
             SnapshotTrigger::Write { path: args.path },
         )
         .await
-        .map_err(|error| map_error(error))?;
+        .map_err(map_error)?;
         Ok(CallToolResult::success(Vec::new()))
     }
 
@@ -220,7 +226,7 @@ impl SandboxServer {
             SnapshotTrigger::Patch { path: args.path },
         )
         .await
-        .map_err(|error| map_error(error))?;
+        .map_err(map_error)?;
         Ok(CallToolResult::success(Vec::new()))
     }
 
@@ -252,7 +258,7 @@ impl SandboxServer {
             },
         )
         .await
-        .map_err(|error| map_error(error))?;
+        .map_err(map_error)?;
         let content = Content::json(result)
             .map_err(|error| McpError::internal_error(error.to_string(), None))?;
         Ok(CallToolResult::success(vec![content]))
@@ -403,12 +409,11 @@ struct SandboxPortsResponse {
 fn forwarded_ports_from_inspection(inspection: &ContainerInspection) -> Vec<ForwardedPortMapping> {
     let mut env_map: HashMap<u16, String> = HashMap::new();
     for entry in &inspection.env {
-        if let Some((key, value)) = entry.split_once('=') {
-            if key.starts_with("LITTERBOX_FWD_PORT_") {
-                if let Ok(port) = value.parse::<u16>() {
-                    env_map.insert(port, key.to_string());
-                }
-            }
+        if let Some((key, value)) = entry.split_once('=')
+            && key.starts_with("LITTERBOX_FWD_PORT_")
+            && let Ok(port) = value.parse::<u16>()
+        {
+            env_map.insert(port, key.to_string());
         }
     }
 
@@ -920,7 +925,7 @@ fn glob_entries(pattern: &str, base: &Path) -> io::Result<Vec<String>> {
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
 
     for entry in walker {
-        let path = entry.map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+        let path = entry.map_err(io::Error::other)?;
         let display = if let Ok(relative) = path.strip_prefix(base) {
             relative.to_string_lossy().into_owned()
         } else {
@@ -965,15 +970,13 @@ fn slice_content(content: &str, offset: Option<usize>, limit: Option<usize>) -> 
     }
 
     let mut result = String::new();
-    let mut index = 0usize;
-    for segment in content.split_inclusive('\n') {
+    for (index, segment) in content.split_inclusive('\n').enumerate() {
         if index >= start {
             if index - start >= max {
                 break;
             }
             result.push_str(segment);
         }
-        index += 1;
     }
     result
 }
