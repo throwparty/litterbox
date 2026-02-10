@@ -39,7 +39,6 @@
               openssl
               pkg-config
               python3
-              stdenv
               syft
               ;
             toolVersions = throwparty.lib.mkToolVersions {
@@ -49,7 +48,6 @@
                 ${getExe openssl} version
                 ${getExe python3} --version
                 ${getExe' rustToolchain "cargo"} --version
-                ${getExe stdenv.cc} --version | head -n 1
                 printf "cosign %s\n" "$(${getExe cosign} version | grep GitVersion | awk '{print $2}')"
                 printf "goreleaser %s\n" "$(${getExe goreleaser} --version | grep GitVersion | awk '{print $2}')"
                 printf "pkg-config %s\n" "$(${getExe pkg-config} --version | head -n 1)"
@@ -68,7 +66,6 @@
               pkg-config
               python3
               rustToolchain
-              stdenv.cc
               syft
             ];
             shellHook = "\ncat ${toolVersions}";
