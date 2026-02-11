@@ -1,8 +1,8 @@
-# ADR: MCP-based Sandbox Mutation Tools
+---
+status: accepted
+---
 
-*   **Date:** 2026-02-07
-*   **Status:** Draft
-*   **Feature:** `mcp-tools`
+# ADR: MCP-based Sandbox Mutation Tools
 
 ## 1. Context and Problem Statement
 

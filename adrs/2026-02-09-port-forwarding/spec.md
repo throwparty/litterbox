@@ -1,9 +1,5 @@
 ---
-status: draft
-created: 2026-02-09
-updated: 2026-02-09
-author: adrian
-decision: pending
+status: accepted
 ---
 
 # Feature Specification: Port Forwarding for Sandbox Containers

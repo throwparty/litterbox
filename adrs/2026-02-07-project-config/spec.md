@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # Specification: Project Configuration
 
 ## 1. Goals
