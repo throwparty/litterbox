@@ -32,8 +32,10 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2.2.1
         with:
           version: 0.15.2
-      - name: Install zigbuild crate
-        run: cargo install --locked cargo-zigbuild
+      - name: Install cargo-binstall
+        run: cargo install cargo-binstall --version 1.10.22 --locked
+      - name: Install cargo-zigbuild
+        run: cargo binstall cargo-zigbuild --version 0.21.2 --no-confirm
       - name: Cache macOS SDK
         id: cache-macos-sdk
         uses: actions/cache@v4.2.1
