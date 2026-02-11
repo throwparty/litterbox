@@ -2,6 +2,9 @@
 
 Review *outputs*, not *actions*: give your AI agents litter trays to poop into.
 
+> [!WARNING]
+> Litterbox is in the proof of concept stage. Because it works by directly updating your Git index, bugs may cause data loss. Please use at your own risk.
+
 <p align="center">
   <img src="logo.jpg" />
 </p>
