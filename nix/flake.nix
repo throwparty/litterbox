@@ -34,6 +34,7 @@
             inherit (throwparty.devShells.${system}) commonTools;
             inherit (pkgs)
               cargo-auditable
+              cargo-deny
               cosign
               goreleaser
               openssl
@@ -60,6 +61,7 @@
           pkgs.mkShell {
             nativeBuildInputs = [
               cargo-auditable
+              cargo-deny
               cosign
               goreleaser
               openssl
