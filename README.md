@@ -11,6 +11,14 @@ Review *outputs*, not *actions*: give your AI agents litter trays to poop into.
 
 ---
 
+## Brief
+
+Litterbox is a tool for sandboxing coding agents, allowing them to safely mutate code and execute commands without affecting the host system, or each other. As changes are made to the sandboxed working tree, Litterbox automatically stages the changes in your Git index for your review. Ports on the container can be forwarded to your host machine, allowing you to interact with APIs or frontends running in the sandbox.
+
+## Installation
+
+Download the appropriate binary from [the latest release](https://github.com/throwparty/litterbox/releases/latest), make it executable (`chmod +x litterbox`), and put it in a directory in your `PATH`.
+
 ## Configuration
 
 Litterbox uses a three-layer TOML configuration system that merges three layers:
