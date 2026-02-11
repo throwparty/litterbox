@@ -1,6 +1,11 @@
-import { themes as prismThemes } from "prism-react-renderer";
+import path from "node:path";
+import process from "node:process";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import type { Configuration as WebpackConfiguration } from "webpack";
+import { themes as prismThemes } from "prism-react-renderer";
+import type { Configuration as WebpackConfig } from "webpack";
+import type { ConfigureWebpackUtils } from "@docusaurus/types";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -11,6 +16,7 @@ const config: Config = {
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
+    experimental_faster: process.env.DOCUSAURUS_FASTER === "true",
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
@@ -34,6 +40,69 @@ const config: Config = {
     defaultLocale: "en",
     locales: ["en"],
   },
+
+  plugins: [
+    function pnpResolverPlugin() {
+      return {
+        name: "pnp-resolver",
+        configureWebpack(
+          _config: WebpackConfig,
+          _isServer: boolean,
+          utils: ConfigureWebpackUtils,
+        ): WebpackConfiguration {
+          const bundler = utils?.currentBundler?.name;
+          if (bundler === "rspack") {
+            const pnpManifest = path.resolve(__dirname, ".pnp.cjs");
+            return {
+              mergeStrategy: {
+                "resolve.modules": "replace",
+                "resolveLoader.modules": "replace",
+                "resolve.byDependency": "replace",
+              },
+              resolve: {
+                pnp: true,
+                pnpManifest,
+                modules: [],
+                byDependency: {
+                  esm: {
+                    pnp: true,
+                    pnpManifest,
+                    modules: [],
+                  },
+                  commonjs: {
+                    pnp: true,
+                    pnpManifest,
+                    modules: [],
+                  },
+                },
+              },
+              resolveLoader: {
+                pnp: true,
+                pnpManifest,
+                modules: [],
+                byDependency: {
+                  esm: {
+                    pnp: true,
+                    pnpManifest,
+                    modules: [],
+                  },
+                  commonjs: {
+                    pnp: true,
+                    pnpManifest,
+                    modules: [],
+                  },
+                },
+              },
+            };
+          } else if (bundler === "webpack") {
+            // No configuration necessary
+          } else {
+            throw new Error(`Unsupported bundler: ${bundler}`);
+          }
+        },
+      };
+    },
+  ],
 
   presets: [
     [
