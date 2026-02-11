@@ -38,3 +38,12 @@ jobs:
       - name: Test
         if: "!cancelled()"
         run: cargo test --locked
+      - name: Install cargo-binstall
+        if: "!cancelled()"
+        run: cargo install cargo-binstall --version 1.10.22 --locked
+      - name: Audit dependency licenses
+        if: "!cancelled()"
+        run: cargo binstall cargo-deny --version 0.18.1 --no-confirm
+      - name: Run license audit
+        if: "!cancelled()"
+        run: cargo deny check licenses
