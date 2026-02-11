@@ -1,3 +1,20 @@
 # direnv
 /.direnv/
 /.envrc
+
+# Yarn
+/node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Artifacts
+/build
+
+# Cache
+.docusaurus
+.cache-loader
