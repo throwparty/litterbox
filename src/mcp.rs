@@ -2283,7 +2283,7 @@ impl SandboxProvider for TestProvider {
 
         let status = Command::new("sh")
             .arg("-c")
-            .arg("printf %s bash >> README.md")
+            .arg("printf %s bash >>README.md")
             .current_dir(tempdir.path())
             .status()
             .expect("bash");
@@ -2291,7 +2291,7 @@ impl SandboxProvider for TestProvider {
         snapshot_after_with_scm(
             &scm,
             SnapshotTrigger::Bash {
-                command: "printf %s bash >> README.md".to_string(),
+                command: "printf %s bash >>README.md".to_string(),
             },
         )
         .expect("snapshot bash");
@@ -2302,7 +2302,7 @@ impl SandboxProvider for TestProvider {
         let head = snapshot_ref.peel_to_commit().expect("snapshot commit");
         assert_eq!(
             head.message().expect("message"),
-            "bash: printf %s bash >> README.md"
+            "bash: printf %s bash >>README.md"
         );
         let parent = head.parent(0).expect("parent");
         assert_eq!(parent.message().expect("message"), "patch: README.md");
