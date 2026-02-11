@@ -385,8 +385,24 @@ fn connect_with_host(host: &str) -> Result<Docker, SandboxError> {
     };
 
     match scheme {
-        "unix" => Docker::connect_with_unix(rest, 120, API_DEFAULT_VERSION)
-            .map_err(|source| SandboxError::Compute(ComputeError::Connection { source })),
+        "unix" => {
+            #[cfg(unix)]
+            {
+                Docker::connect_with_socket(rest, 120, API_DEFAULT_VERSION)
+                    .map_err(|source| SandboxError::Compute(ComputeError::Connection { source }))
+            }
+            #[cfg(not(unix))]
+            {
+                Err(SandboxError::Compute(ComputeError::Connection {
+                    source: bollard::errors::Error::IOError {
+                        err: std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "unix docker host is not supported on this platform",
+                        ),
+                    },
+                }))
+            }
+        }
         "tcp" => {
             let endpoint = format!("http://{}", rest);
             Docker::connect_with_http(&endpoint, 120, API_DEFAULT_VERSION)
