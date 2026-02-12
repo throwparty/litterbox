@@ -41,6 +41,10 @@ const config: Config = {
     locales: ["en"],
   },
 
+  markdown: {
+    mermaid: true,
+  },
+
   plugins: [
     function pnpResolverPlugin() {
       return {
@@ -51,6 +55,24 @@ const config: Config = {
           utils: ConfigureWebpackUtils,
         ): WebpackConfiguration {
           const bundler = utils?.currentBundler?.name;
+          const alias = {
+            "vscode-jsonrpc/lib/common/events.js": path.resolve(
+              __dirname,
+              "src/webpack-shims/vscode-jsonrpc-events.js",
+            ),
+            "vscode-jsonrpc/lib/common/events": path.resolve(
+              __dirname,
+              "src/webpack-shims/vscode-jsonrpc-events.js",
+            ),
+            "vscode-jsonrpc/lib/common/cancellation.js": path.resolve(
+              __dirname,
+              "src/webpack-shims/vscode-jsonrpc-cancellation.js",
+            ),
+            "vscode-jsonrpc/lib/common/cancellation": path.resolve(
+              __dirname,
+              "src/webpack-shims/vscode-jsonrpc-cancellation.js",
+            ),
+          };
           if (bundler === "rspack") {
             const pnpManifest = path.resolve(__dirname, ".pnp.cjs");
             return {
@@ -62,6 +84,7 @@ const config: Config = {
               resolve: {
                 pnp: true,
                 pnpManifest,
+                alias,
                 modules: [],
                 byDependency: {
                   esm: {
@@ -95,7 +118,11 @@ const config: Config = {
               },
             };
           } else if (bundler === "webpack") {
-            // No configuration necessary
+            return {
+              resolve: {
+                alias,
+              },
+            };
           } else {
             throw new Error(`Unsupported bundler: ${bundler}`);
           }
@@ -136,6 +163,8 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+
+  themes: ["@docusaurus/theme-mermaid"],
 
   themeConfig: {
     // Replace with your project's social card
