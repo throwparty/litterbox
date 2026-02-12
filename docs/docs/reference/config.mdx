@@ -1,0 +1,58 @@
+# 🎛️ Configuration
+
+Litterbox configuration is sourced from three places:
+
+1. **Defaults** which are automatically derived from your environment.
+2. **Project configuration** (`.litterbox.toml`) checked in to your repository.
+3. **Local overrides** (`.litterbox.local.toml`) user-specific settings that should be ignored by version control.
+
+All options may be specified in the project or local overrides configuration files.
+
+## Options
+
+### `project` (table)
+
+- `slug` is a unique identifier for the project, used to minimise collisions across projects in resources like Docker containers.
+
+### `docker` (table)
+
+- `image` specifies a Docker image to use for sandboxes.
+- `setup-command`: Command to run during sandbox setup.
+
+### `ports` (array of tables)
+
+- `name` is a unique identifier for the port.
+- `target` is the port number to expose on the sandbox.
+
+## Layers
+
+### Layer 1: defaults
+
+Litterbox automatically provides these defaults:
+
+- `project.slug`, derived from your current directory name (slugified).
+
+### Layer 2: project configuration (`.litterbox.toml`)
+
+All options may be specified in the project configuration file.
+
+```toml
+[project]
+slug = "my-project"
+
+[docker]
+image = "ubuntu:latest"
+setup-command = "echo 'Setup complete'"
+```
+
+### Layer 3: local overrides (`.litterbox.local.toml`)
+
+All options may be specified in the local overrides file.
+
+```toml
+[project]
+slug = "my-conflicting-project"
+
+[docker]
+image = "my-custom-image:v1.0"
+```

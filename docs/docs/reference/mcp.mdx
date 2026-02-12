@@ -1,0 +1,91 @@
+# 🤖 MCP tools
+
+## `bash`
+
+Execute a shell command inside the sandbox.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `command` (string, required) Shell command to execute.
+- `workdir` (string, optional) Working directory inside the sandbox.
+- `timeout` (integer, optional) Timeout in seconds.
+
+## `glob`
+
+Find files matching a glob pattern.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `pattern` (string, required) Glob pattern to match.
+- `path` (string, optional) Base path for matching.
+
+## `grep`
+
+Search file contents for a pattern.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `pattern` (string, required) Pattern to search for.
+- `path` (string, required) Path inside the sandbox.
+- `include` (string, optional) Glob include filter (e.g., *.rs).
+
+## `ls`
+
+List directory entries.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `path` (string, required) Path inside the sandbox.
+- `recursive` (boolean, optional) Recursively list all descendants.
+
+## `patch`
+
+Apply a unified diff inside the sandbox.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `path` (string, required) Path inside the sandbox.
+- `diff` (string, required) Unified diff to apply.
+
+## `read`
+
+Read a file from the sandbox.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `path` (string, required) Path inside the sandbox.
+- `offset` (integer, optional) Line offset (0-based).
+- `limit` (integer, optional) Maximum number of lines to read.
+
+## `sandbox-create`
+
+Create a new sandbox based on the current repository HEAD.
+
+Parameters:
+
+- `name` (string, required) Sandbox name.
+
+## `sandbox-ports`
+
+Get forwarded ports for a sandbox.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+
+## `write`
+
+Write a file into the sandbox.
+
+Parameters:
+
+- `sandbox` (string, required) Sandbox name.
+- `path` (string, required) Path inside the sandbox.
+- `content` (string, required) Full file contents to write.
+

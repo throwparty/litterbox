@@ -1,0 +1,48 @@
+---
+sidebar_position: 5
+---
+
+# 🚀 First sandbox
+
+Give your agent a prompt like:
+
+> In a new sandbox, prepare me a cat poop themed website for an MCP server called Litterbox that gives agents sandboxed environments with their changes showing up on a git branch for easy review and merge.
+
+:::tip
+
+Note that depending on your agent harness, you need to select an agent or `@mention` it.
+
+:::
+
+Assuming your agent harness is correctly configured you should see a response along the lines of:
+
+> Establishing the Sandbox
+>
+> I've sketched out the essentials for the "Litterbox" website, now it's time to build the sandbox. First I'll create that environment. After that's done, I'll dive into the website's structure, then get started with HTML and CSS. Cat poop theme is next, with graphics and fonts.
+>
+> ⚙ litterbox_sandbox-create [name=litterbox-website]
+>
+> Thinking: Constructing Website Structure
+>
+> I've successfully created the sandbox environment, litterbox-website, and verified the web server is operational on port 8080 within the container, mapped to port 5773 on the host. My next step involves developing the website content. I'm planning to begin with a foundational index.html file and an associated style.css file for styling.
+
+Or once they're complete with the initial prompt:
+
+> Thinking: Presenting the Findings
+>
+> I've confirmed the existence of index.html and style.css. Moreover, I've verified the site's accessibility at the specified local host address. My next step is to prepare the final presentation for the user.
+>
+> The cat poop themed website for Litterbox is ready!
+>
+> I've created a new sandbox litterbox-website and set up the landing page with a "fresh" design.
+>
+> Website URL: http://localhost:5773
+>
+> Features included:
+> - Themed Design: A lovely palette of browns and sandy textures.
+> - Key Features: Highlights sandboxed environments and git integration.
+> - Playful Copy: "Scoop changes, " "Keep the smell contained," etc.
+>
+> You can find the source files (index.html, style.css) in the sandbox if you want to make any adjustments to the litter.
+
+Either way, the site should now be accessible at `http://localhost:5773`.

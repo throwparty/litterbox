@@ -1,0 +1,69 @@
+---
+sidebar_position: 2
+---
+
+# 📦 Installation
+
+The application is distributed as a single `litterbox` binary, which you'll need to [download from the latest release](https://github.com/throwparty/litterbox/releases/latest) make executable and place on your `PATH`.
+
+:::info
+
+We're aware that placing binaries on `PATH` isn't great for versioning. Packaging is on the roadmap.
+
+:::
+
+<Tabs groupId="os" queryString="os">
+  <TabItem value="gnu-linux" label="GNU/Linux">
+    What steps are required for you depend on your Linux distribution.
+
+    To use our binary distribution, place it somewhere on your `PATH`. We suggest `~/.local/bin`.
+
+    ```shell
+    mkdir -p ~/.local/bin
+    curl -L https://github.com/throwparty/litterbox/releases/download/v0.1.0/litterbox_Linux_x86_64 -o ~/.local/bin/litterbox
+    chmod +x ~/.local/bin/litterbox
+    ```
+
+    Then, add the following to your shell's rc:
+
+    ```shell
+    export PATH="$PATH:~/.local/bin"
+    ```
+  </TabItem>
+
+  <TabItem value="macos" label="macOS">
+    To use our binary distribution, place it somewhere on your `PATH`. We suggest `~/.local/bin`.
+
+    ```shell
+    mkdir -p ~/.local/bin
+    curl -L https://github.com/throwparty/litterbox/releases/download/v0.1.0/litterbox_Darwin_arm64 -o ~/.local/bin/litterbox
+    chmod +x ~/.local/bin/litterbox
+    ```
+
+    Then, add the following to your shell's rc:
+
+    ```shell
+    export PATH="$PATH:~/.local/bin"
+    ```
+  </TabItem>
+
+  <TabItem value="windows" label="Windows">
+    To use our binary distribution, place it somewhere on your `PATH`. We suggest `~/.local/bin`.
+
+    ```powershell
+    $localBin = Join-Path $env:USERPROFILE ".local" "bin"
+    New-Item -ItemType Directory -Force -Path $localBin | Out-Null
+
+    $dest = Join-Path $localBin "litterbox.exe"
+    $url = "https://github.com/throwparty/litterbox/releases/download/v0.1.0/litterbox_Windows_x86_64.exe"
+    Invoke-WebRequest -Uri $url -OutFile $dest
+
+    $oldPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    if (($oldPath -split ';') -notcontains $localBin) {
+      [System.Environment]::SetEnvironmentVariable("Path", "$oldPath;$localBin", "User")
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+You now need to [set up your agent harness](category/agents) to launch the Litterbox MCP server and configure an agent that can only use Litterbox's write and exec tools.

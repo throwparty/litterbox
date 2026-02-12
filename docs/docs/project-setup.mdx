@@ -1,0 +1,30 @@
+---
+sidebar_position: 4
+---
+
+# 📂 Setting up your project
+
+Create a file in the root of your project named `.litterbox.toml` with the content:
+
+```toml
+# Optional: override the default project slug (derived from directory name)
+# [project]
+# slug = "my-project"
+
+[docker]
+image = "busybox:latest"
+setup-command = "busybox httpd -h /src -p 0.0.0.0:8080"
+
+[[ports]]
+name = "www"
+target = 8080
+```
+
+For details on what configuration options are available, see the [configuration reference](reference/config).
+
+When a new sandbox is created, Litterbox will:
+
+- Create a new branch named after the sandbox in your Git repository.
+- Copy the source code into `/src` inside the container.
+- Run the setup command to start the HTTP server.
+- Assign it a random port number that forwards traffic to the HTTP server running on port 8080 in the container.
