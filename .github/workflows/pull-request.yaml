@@ -1,0 +1,13 @@
+name: Pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build and test
+    permissions:
+      actions: write
+      contents: read
+    uses: ./.github/workflows/litterbox.build-and-test.yaml

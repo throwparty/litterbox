@@ -1,8 +1,7 @@
-name: Release
+name: "Litterbox: build and release"
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_call: {}
 
 jobs:
   release:
@@ -33,7 +32,9 @@ jobs:
         with:
           version: 0.15.2
       - name: Install cargo-binstall
-        run: cargo install cargo-binstall --version 1.17.4 --locked
+        uses: cargo-bins/cargo-binstall@main
+        with:
+          version: 1.17.5
       - name: Install cargo-zigbuild
         run: cargo binstall cargo-zigbuild --version 0.21.8 --no-confirm
       - name: Cache macOS SDK

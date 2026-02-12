@@ -1,8 +1,7 @@
-name: Pull request
+name: "Litterbox: build and test"
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_call: {}
 
 jobs:
   test:
@@ -29,6 +28,12 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+        with:
+          version: 1.17.5
+      - name: Install cargo-deny
+        run: cargo-binstall cargo-deny --version 0.19.0 --no-confirm
       - name: Lint
         if: "!cancelled()"
         run: cargo clippy --locked --all-targets --all-features
@@ -38,12 +43,6 @@ jobs:
       - name: Test
         if: "!cancelled()"
         run: cargo test --locked
-      - name: Install cargo-binstall
+      - name: Run audit
         if: "!cancelled()"
-        run: cargo install cargo-binstall --version 1.17.4 --locked
-      - name: Audit dependency licenses
-        if: "!cancelled()"
-        run: cargo-binstall cargo-deny --version 0.19.0 --no-confirm
-      - name: Run license audit
-        if: "!cancelled()"
-        run: cargo deny check licenses
+        run: cargo deny check
