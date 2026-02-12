@@ -1,0 +1,14 @@
+name: Merge to main
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-docs:
+    name: Build and deploy docs
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.build-and-deploy.yaml

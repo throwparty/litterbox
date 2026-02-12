@@ -1,0 +1,66 @@
+name: "Docs: build and deploy"
+
+on:
+  workflow_call: {}
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: ./docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: yarn
+          cache-dependency-path: docs/yarn.lock
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/.docusaurus
+            docs/build
+          key: "${{ runner.os }}-build-and-deploy-\
+            ${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-\
+            ${{ hashFiles('**.css', '**.html', '**.json', '**.mdx', '**.svg', '**.tsx', '**.yml') }}"
+          restore-keys: "${{ runner.os }}-build-and-deploy-\
+            ${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-"
+      - name: Install dependencies
+        run: yarn
+      - name: Build
+        run: yarn build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build
+
+  deploy:
+    name: Deploy
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
