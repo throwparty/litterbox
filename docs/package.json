@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@chevrotain/regexp-to-ast": "11.1.1",
+    "@cmfcmf/docusaurus-search-local": "^2.0.1",
     "@docusaurus/core": "3.9.2",
     "@docusaurus/faster": "^3.9.2",
     "@docusaurus/plugin-content-docs": "3.9.2",

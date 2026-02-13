@@ -46,6 +46,7 @@ const config: Config = {
   },
 
   plugins: [
+    "@cmfcmf/docusaurus-search-local",
     function pnpResolverPlugin() {
       return {
         name: "pnp-resolver",

@@ -6,25 +6,66 @@
 
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+    --ifm-color-primary: #6b3e26;
+    --ifm-color-primary-dark: #5f351f;
+    --ifm-color-primary-darker: #512d19;
+    --ifm-color-primary-darkest: #3c2212;
+    --ifm-color-primary-light: #7a4a2d;
+    --ifm-color-primary-lighter: #8b5634;
+    --ifm-color-primary-lightest: #a26945;
+    --ifm-code-font-size: 95%;
+    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+    --aa-text-color-rgb: 43, 34, 28 !important;
+    --aa-text-color-alpha: 1 !important;
+    --aa-primary-color-rgb: 107, 62, 38 !important;
+    --aa-primary-color-alpha: 1 !important;
+    --aa-muted-color-rgb: 122, 74, 45 !important;
+    --aa-muted-color-alpha: 1 !important;
+    --aa-input-border-color-rgb: 123, 96, 78 !important;
+    --aa-input-border-color-alpha: 0.45 !important;
+    --aa-panel-border-color-rgb: 123, 96, 78 !important;
+    --aa-panel-border-color-alpha: 0.35 !important;
+    --aa-background-color-rgb: 255, 250, 246 !important;
+    --aa-background-color-alpha: 1 !important;
+    --aa-input-background-color-rgb: 255, 248, 242 !important;
+    --aa-input-background-color-alpha: 1 !important;
+    --aa-selected-color-rgb: 107, 62, 38 !important;
+    --aa-selected-color-alpha: 0.15 !important;
+    --aa-description-highlight-background-color-rgb: 210, 156, 106 !important;
+    --aa-description-highlight-background-color-alpha: 0.3 !important;
+    --aa-icon-color-rgb: 96, 70, 52 !important;
+    --aa-icon-color-alpha: 0.8 !important;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
-[data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+[data-theme="dark"] {
+    --ifm-color-primary: #9b6b45;
+    --ifm-color-primary-dark: #8a5f3d;
+    --ifm-color-primary-darker: #7a5336;
+    --ifm-color-primary-darkest: #5c3e28;
+    --ifm-color-primary-light: #ab774e;
+    --ifm-color-primary-lighter: #bb8356;
+    --ifm-color-primary-lightest: #d29c6a;
+    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+    --aa-text-color-rgb: 226, 215, 206 !important;
+    --aa-text-color-alpha: 1 !important;
+    --aa-primary-color-rgb: 209, 156, 106 !important;
+    --aa-primary-color-alpha: 1 !important;
+    --aa-muted-color-rgb: 187, 131, 86 !important;
+    --aa-muted-color-alpha: 1 !important;
+    --aa-input-border-color-rgb: 132, 98, 72 !important;
+    --aa-input-border-color-alpha: 0.6 !important;
+    --aa-panel-border-color-rgb: 132, 98, 72 !important;
+    --aa-panel-border-color-alpha: 0.5 !important;
+    --aa-background-color-rgb: 26, 20, 16 !important;
+    --aa-background-color-alpha: 1 !important;
+    --aa-input-background-color-rgb: 20, 15, 12 !important;
+    --aa-input-background-color-alpha: 1 !important;
+    --aa-selected-color-rgb: 209, 156, 106 !important;
+    --aa-selected-color-alpha: 0.22 !important;
+    --aa-description-highlight-background-color-rgb: 155, 107, 69 !important;
+    --aa-description-highlight-background-color-alpha: 0.35 !important;
+    --aa-icon-color-rgb: 160, 124, 98 !important;
+    --aa-icon-color-alpha: 0.85 !important;
 }
