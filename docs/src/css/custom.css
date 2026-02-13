@@ -69,3 +69,13 @@
     --aa-icon-color-rgb: 160, 124, 98 !important;
     --aa-icon-color-alpha: 0.85 !important;
 }
+
+mark[data-markjs] {
+    background: rgba(185, 136, 90, 0.35);
+    color: inherit;
+}
+
+[data-theme="dark"] mark[data-markjs] {
+    background: rgba(160, 113, 76, 0.45);
+    color: inherit;
+}
